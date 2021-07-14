@@ -1,0 +1,52 @@
+(do
+  -[ primitives ]-
+  42             --> 42
+  "deep thought" --> "deep thought"
+  true           --> true
+
+  -[ symbols ]-
+  :thing         --> :thing
+
+  -[ collections ]-
+  [42 43 44]     -- list
+  {
+    foo: "bar"   -- dict
+    baz: 42
+  }
+
+  -[ apply func + to args 1 2 ]-
+  [$ + 1 2]          --> 3
+  (+ 1 2)            --> 3
+
+  -[ eval expression in new scope ]-
+  [$ {:x 42} [$ + x 2]] --> 44
+  ({:x 42} (+ x 2))     --> 44
+
+  [+ x 2]                --> [+ x 2]
+  [{:x 42} [+ x 2]]       --> [{x:42} [+ x 2]]
+  [$ {:x 42} [+ [$ x] 2]] --> [+ 42 2]
+  ({:x 42} [+ (x) 2])     --> [+ 42 2]
+  ({:x 42} (+ x 2))       --> 44
+
+  [1 x (+ 1 2) 4]        --> [1 x 3 4]
+
+  (def env :x 42)
+  (def env {:y 54 :z 69})
+  (def env :expr [+ x 2])
+  ({x:42} (expr))
+
+  (
+    {:y 42}
+    (def root :expr2 [env + x y])
+  )
+  ({:x 2} (expr2))
+
+  (def env :blk [# (env) [x] [+ x 2]])     -- [# <env> <args> <expr>]
+  (def env :blk (x | + x 2))               -- same
+
+  (def env :blk [# {:x nil :^ env} (+ x 2)]) -- [<args> <expr>]
+  (  blk 42)
+  [$ blk 42]
+  [$ [# {:x nil :^ env} [$ + x 2]] 42]
+  [$ [  {:x  42 :^ env} [$ + x 2]]]
+)

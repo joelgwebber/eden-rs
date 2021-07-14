@@ -1,58 +1,75 @@
-use bevy::prelude::shape::*;
+use std::collections::HashMap;
+use std::fs;
+
 use bevy::prelude::*;
 
+use kurt::builtins::init_builtins;
+
+use crate::kurt::{Node, NodeRef, eval};
+use crate::kurt::parse;
+
+mod kurt;
+
+#[macro_use]
+extern crate pest_derive;
+
 fn main() {
-    App::build()
-        .insert_resource(Msaa { samples: 4 })
-        .insert_resource(WindowDescriptor {
-            title: "Eden".to_string(),
-            width: 1600.,
-            height: 1200.,
-            ..Default::default()
-        })
-        .add_plugins(DefaultPlugins)
-        .add_startup_system(setup.system())
-        .add_startup_system(create_board.system())
-        .run();
+    let src = fs::read_to_string("test.kurt").expect("cannot read file");
+
+    let mut root_map = HashMap::new();
+    init_builtins(&mut root_map);
+
+    let root = NodeRef::new(Node::Dict(root_map));
+    let tree = parse::parse(src);
+    println!("-> {}", eval::eval(root, tree));
+
+    // App::build()
+    //     .insert_resource(Msaa { samples: 4 })
+    //     .insert_resource(WindowDescriptor {
+    //         title: "Eden".to_string(),
+    //         width: 1600.,
+    //         height: 1200.,
+    //         ..Default::default()
+    //     })
+    //     .add_plugins(DefaultPlugins)
+    //     .add_system(rotator_system.system())
+    //     .add_startup_system(setup.system())
+    //     .run();
 }
 
+/*
+// set up a simple 3D scene
 fn setup(
-    mut commands: Commands
-) {
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_matrix(Mat4::from_rotation_translation(
-            Quat::from_xyzw(-0.3, -0.5, -0.3, 0.5).normalize(),
-            Vec3::new(-7.0, 20.0, 4.0),
-        )),
-        ..Default::default()
-    });
-    commands.spawn_bundle(LightBundle {
-        transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
-        ..Default::default()
-    });
-}
-
-fn create_board(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
-    let mesh = meshes.add(Mesh::from(Plane { size: 1. }));
-    let white_mat = materials.add(Color::rgb(1., 0.9, 0.9).into());
-    let black_mat = materials.add(Color::rgb(0., 0.1, 0.1).into());
+    // object
+    commands.spawn_scene(asset_server.load("models/bed_out/bed.gltf#Scene0"));
 
-    for i in 0..8 {
-        for j in 0..8 {
-            commands.spawn_bundle(PbrBundle {
-                mesh: mesh.clone(),
-                material: if (i + j + 1) % 2 == 0 {
-                    white_mat.clone()
-                } else {
-                    black_mat.clone()
-                },
-                transform: Transform::from_translation(Vec3::new(i as f32, 0., j as f32)),
-                ..Default::default()
-            });
-        }
+    // light
+    commands
+        .spawn_bundle(LightBundle {
+            transform: Transform::from_xyz(4.0, 4.0, 4.0),
+            ..Default::default()
+        })
+        .insert(Rotates);
+
+    // camera
+    commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_xyz(0.7, 4.0, 4.0).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y),
+        ..Default::default()
+    });
+}
+
+struct Rotates;
+
+fn rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<Rotates>>) {
+    for mut transform in query.iter_mut() {
+        *transform = Transform::from_rotation(Quat::from_rotation_y(
+            (4.0 * std::f32::consts::PI / 20.0) * time.delta_seconds(),
+        )) * *transform;
     }
 }
+*/

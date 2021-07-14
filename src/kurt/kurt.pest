@@ -1,0 +1,47 @@
+WHITESPACE = _{ " " | "\r" | "\n" }
+COMMENT = _{
+  ("-[" ~ (!"]-" ~ ANY)* ~ "]-") |
+  ("-(" ~ (!"]-" ~ ANY)* ~ ")-") |
+  ("-{" ~ (!"]-" ~ ANY)* ~ "}-") |
+  ("--" ~ (!NEWLINE ~ ANY)* ~ NEWLINE )
+}
+
+nil = { "nil" }
+
+boolean = { "true" | "false" }
+
+number = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
+
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+str_inner = @{ char* }
+string = ${ "\"" ~ str_inner ~ "\"" }
+
+sym_char = {
+  !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "|") ~ ANY
+}
+id = @{ sym_char+ }
+sym = @{ ":" ~ id }
+
+prim = { number | string | boolean | nil }
+list = { "[" ~ expr* ~ "]" }
+pair = { id ~ ":" ~ expr }
+dict = { "{" ~ pair* ~ "}" }
+exec = { "(" ~ expr* ~ ")" }
+args = { id+ ~ "|" }
+block = { "(" ~ args ~ expr* ~ ")" }
+expr = { prim | sym | id | list | dict | exec | block }
+
+file = {
+    SOI ~
+    expr ~
+    EOI
+}
