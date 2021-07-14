@@ -1,11 +1,11 @@
 -[ This is a test ]-
 
--[{
+-{
   :foo [42 false "w00t"]
   :bar [+ 1 2]
-}]-
+}-
 
 -[log "w00t!"]-
--[{msg: "w00t!"} log]-
+-({msg: "w00t!"} log)-
 
 (foo bar | log "w00t")

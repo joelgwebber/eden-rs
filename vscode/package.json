@@ -1,0 +1,27 @@
+{
+    "name": "kurt",
+    "displayName": "kurt",
+    "description": "mftl",
+    "version": "0.0.1",
+    "publisher": "j15r",
+    "repository": "none",
+    "engines": {
+        "vscode": "^1.52.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "kurt",
+            "aliases": ["Kurt", "kurt"],
+            "extensions": [".kurt"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "kurt",
+            "scopeName": "source.kurt",
+            "path": "./syntaxes/kurt.tmLanguage.json"
+        }]
+    }
+}

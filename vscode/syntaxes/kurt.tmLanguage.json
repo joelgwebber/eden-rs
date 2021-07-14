@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Kurt",
+  "patterns": [
+    { "include": "#comment-line" },
+    { "include": "#comment-list" },
+    { "include": "#comment-map" },
+    { "include": "#comment-exec" },
+    { "include": "#strings" },
+    { "include": "#constants" },
+    { "include": "#dict-key" },
+    { "include": "#list" }
+  ],
+  "repository": {
+    "list": {
+      "name": "keyword",
+      "patterns": [
+        {
+          "name": "keyword.control",
+          "match": "(true|false|if|do|def|set|list|<|>|<=|>=|\\+|-|\\/|\\*|@|\\^|\\?)\\s"
+        },
+        {
+          "name": "support.type",
+          "match": "[^\\t\\r\\n\\[\\](){}:\\|]*\\|"
+        },
+        {
+          "name": "variable",
+          "match": "[^ \\t\\r\\n\\[\\](){}:\\|]+"
+        },
+        {
+          "name": "storage",
+          "match": ":[^ \\t\\r\\n\\[\\](){}:\\|]+"
+        },
+        {
+          "name": "entity.name.function",
+          "match": ":[^ \\t\\r\\n\\[\\](){}:\\|]+"
+        }
+      ]
+    },
+    "comment-line": {
+      "name": "comment.line.kurt",
+      "begin": "--",
+      "end": "$"
+    },
+    "comment-list": {
+      "name": "comment.block.kurt",
+      "begin": "-\\[",
+      "end": "\\]-"
+    },
+    "comment-map": {
+      "name": "comment.block.kurt",
+      "begin": "-\\{",
+      "end": "\\}-"
+    },
+    "comment-exec": {
+      "name": "comment.block.kurt",
+      "begin": "-\\(",
+      "end": "\\)-"
+    },
+    "dict-key": {
+      "patterns": [
+        {
+          "name": "entity.name.function",
+          "match": "[^\\s\\t\\r\\n\\[\\](){}:\\|=]+:\\s"
+        }
+      ]
+    },
+    "constants": {
+      "name": "constant",
+      "patterns": [
+        {
+          "name": "constant.numeric",
+          "match": "[\\d]+\\.?[\\d]*"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.kurt",
+      "begin": "\"",
+      "end": "\""
+    }
+  },
+  "scopeName": "source.kurt"
+}
