@@ -1,11 +1,5 @@
-use super::{Node, NodeRef};
-use std::{borrow::Borrow, fmt::{self, Debug}};
-
-impl fmt::Display for NodeRef {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      self.borrow().fmt(f)
-    }
-}
+use super::Node;
+use std::{collections::HashMap, fmt};
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -18,43 +12,56 @@ impl fmt::Display for Node {
             Node::Sym(n) => write!(f, ":{}", n),
             Node::Native(_) => write!(f, "<native>"),
 
-            Node::List(v) => {
+            Node::List(vec_ref) => {
                 // TODO: There's gotta be a terser way to handle errors in this?
                 write!(f, "[")?;
-                write_vec(f, v)?;
+                write_vec(f, &*vec_ref.borrow())?;
                 write!(f, "]")
             }
 
-            Node::Dict(d) => {
+            Node::Dict(map_ref) => {
                 // TODO: There's gotta be a terser way to handle errors in this?
                 write!(f, "{{")?;
-                for (name, node) in d {
-                    write!(f, "{}: ", name)?;
-                    node.fmt(f)?;
-                    write!(f, " ")?;
-                }
+                write_map(f, &*map_ref.borrow())?;
                 write!(f, "}}")?;
                 Ok(())
             }
 
-            Node::Block(args, expr) => {
+            Node::Block(block_ref) => {
+                let block = &*block_ref.borrow();
                 write!(f, "(")?;
-                write_vec(f, args)?;
+                write_vec(f, &block.0)?;
                 write!(f, " | ")?;
-                expr.fmt(f)?;
+                block.1.fmt(f)?;
                 write!(f, ")")
             }
         }
     }
 }
 
-fn write_vec(f: &mut fmt::Formatter, v: &Vec<NodeRef>) -> fmt::Result {
+fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
     use std::fmt::Display;
     use std::fmt::Write;
 
     let mut i = 0;
-    for n in v {
-        n.fmt(f)?;
+    for (name, node) in m {
+        write!(f, "{}: ", name)?;
+        node.fmt(f)?;
+        if i < m.len() - 1 {
+            f.write_char(' ')?;
+        }
+        i += 1;
+    }
+    Ok(())
+}
+
+fn write_vec(f: &mut fmt::Formatter, v: &Vec<Node>) -> fmt::Result {
+    use std::fmt::Display;
+    use std::fmt::Write;
+
+    let mut i = 0;
+    for node in v {
+        node.fmt(f)?;
         i += 1;
         if i < v.len() {
             f.write_char(' ')?;

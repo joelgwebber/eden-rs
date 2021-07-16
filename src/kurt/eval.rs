@@ -5,20 +5,20 @@ use crate::kurt::Node;
 use super::NodeRef;
 
 // TODO
-pub fn eval(env: NodeRef, expr: NodeRef) -> NodeRef {
+pub fn eval(env: Node, expr: Node) -> Node {
     println!("eval -- {} :: {}", env.borrow(), expr.borrow());
-    match &*expr.borrow() {
+    match &expr {
         // <prim> -> <prim>
         Node::Nil => expr.clone(),
-        Node::Num(x) => expr.clone(),
-        Node::Bool(x) => expr.clone(),
-        Node::Str(ref x) => expr.clone(),
+        Node::Num(_) => expr.clone(),
+        Node::Bool(_) => expr.clone(),
+        Node::Str(_) => expr.clone(),
 
         // :sym -> :sym
-        Node::Sym(ref s) => expr.clone(),
+        Node::Sym(_) => expr.clone(),
 
         // (block) -> (block)
-        Node::Block(_, _) => expr.clone(),
+        Node::Block(_) => expr.clone(),
 
         Node::Native(f) => f(env),
 
@@ -38,17 +38,18 @@ pub fn eval(env: NodeRef, expr: NodeRef) -> NodeRef {
         }
 
         // { key:expr... } -> { key:[eval expr]... }
-        Node::Dict(map) => {
-            let mut new_map = HashMap::<String, NodeRef>::new();
-            for (key, node) in map {
+        Node::Dict(map_ref) => {
+            let mut new_map = HashMap::<String, Node>::new();
+            for (key, node) in &*map_ref.borrow() {
                 new_map.insert(key.clone(), eval(env.clone(), node.clone()));
             }
-            NodeRef::new(Node::Dict(new_map))
+            Node::Dict(NodeRef::new(new_map))
         }
 
         // [exprs...] -> [eval [exprs...]]
-        Node::List(vec) => {
-            let exprs: Vec<NodeRef> = vec
+        Node::List(vec_ref) => {
+            let vec = &*vec_ref.borrow();
+            let exprs: Vec<Node> = vec
                 .into_iter()
                 .map(|node| eval(env.clone(), node.clone()))
                 .collect();
@@ -63,19 +64,19 @@ pub fn eval(env: NodeRef, expr: NodeRef) -> NodeRef {
                     _ => {}
                 }
             }
-            NodeRef::new(Node::List(exprs))
+            Node::List(NodeRef::new(exprs))
         }
     }
 }
 
-pub fn exec(env: NodeRef, vec: Vec<NodeRef>) -> NodeRef {
-    let ls = Node::List(vec.clone());
+pub fn exec(env: Node, vec: Vec<Node>) -> Node {
+    let ls = Node::List(NodeRef::new(vec.clone()));
     println!("exec -- {} :: {}", env.clone(), ls);
 
     match vec.len() {
         // () -> nil
         // TODO: Does this make sense?
-        0 => NodeRef::new(Node::Nil),
+        0 => Node::Nil,
 
         // (expr) -> expr
         // TODO: zero-param call
@@ -87,12 +88,12 @@ pub fn exec(env: NodeRef, vec: Vec<NodeRef>) -> NodeRef {
             let second = vec.get(1).unwrap();
             match (&*first.borrow(), &*second.borrow()) {
                 // (dict id) -> access
-                (Node::Dict(_), Node::Id(s)) => eval(first.clone(), second.clone()),
+                (Node::Dict(_), Node::Id(_)) => eval(first.clone(), second.clone()),
 
                 // (dict block) -> invoke
-                (Node::Dict(map), Node::Block(_, expr)) => {
-                    let params = copy_map(map);
-                    eval(NodeRef::new(Node::Dict(params)), expr.clone())
+                (Node::Dict(map_ref), Node::Block(block_ref)) => {
+                    let params = copy_map(&*map_ref.borrow());
+                    eval(Node::Dict(NodeRef::new(params)), block_ref.borrow().1.clone())
                 }
 
                 _ => unimplemented!(),
@@ -103,8 +104,8 @@ pub fn exec(env: NodeRef, vec: Vec<NodeRef>) -> NodeRef {
     }
 }
 
-fn copy_map(map: &HashMap<String, NodeRef>) -> HashMap<String, NodeRef> {
-    let mut new_map = HashMap::<String, NodeRef>::new();
+fn copy_map(map: &HashMap<String, Node>) -> HashMap<String, Node> {
+    let mut new_map = HashMap::<String, Node>::new();
     for (key, node) in map {
         new_map.insert(key.clone(), node.clone());
     }

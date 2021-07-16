@@ -9,16 +9,16 @@ use crate::kurt::NodeRef;
 #[grammar = "kurt/kurt.pest"]
 struct KurtParser;
 
-pub fn parse(src: String) -> NodeRef {
+pub fn parse(src: String) -> Node {
     let file = KurtParser::parse(Rule::file, &src)
         .expect("unsuccessful parse")
         .next()
         .unwrap();
 
-    fn parse_value(expr: Pair<Rule>) -> NodeRef {
+    fn parse_value(expr: Pair<Rule>) -> Node {
         match expr.as_rule() {
             Rule::dict => {
-                let mut map = HashMap::<String, NodeRef>::new();
+                let mut map = HashMap::<String, Node>::new();
                 expr.into_inner().for_each(|pair| match pair.as_rule() {
                     Rule::pair => {
                         let mut inner_rules = pair.into_inner();
@@ -28,7 +28,7 @@ pub fn parse(src: String) -> NodeRef {
                     }
                     _ => unreachable!(),
                 });
-                NodeRef::new(Node::Dict(map))
+                Node::Dict(NodeRef::new(map))
             }
 
             Rule::block => {
@@ -40,21 +40,21 @@ pub fn parse(src: String) -> NodeRef {
                     .map(parse_value)
                     .collect();
                 let exprs = rules.map(parse_value).collect();
-                NodeRef::new(Node::Block(args, NodeRef::new(Node::List(exprs))))
+                Node::Block(NodeRef::new((args, Node::List(NodeRef::new(exprs)))))
             }
 
             Rule::exec => {
-                let mut list = vec![NodeRef::new(Node::Id("$".to_string()))];
+                let mut list = vec![Node::Id("$".to_string())];
                 list.extend(expr.into_inner().map(parse_value));
-                NodeRef::new(Node::List(list))
+                Node::List(NodeRef::new(list))
             }
 
-            Rule::list => NodeRef::new(Node::List(expr.into_inner().map(parse_value).collect())),
-            Rule::number => NodeRef::new(Node::Num(expr.as_str().parse().unwrap())),
-            Rule::boolean => NodeRef::new(Node::Bool(expr.as_str().parse().unwrap())),
-            Rule::string => NodeRef::new(Node::Str(String::from(expr.as_str()))),
-            Rule::sym => NodeRef::new(Node::Sym(String::from(&expr.as_str()[1..]))),
-            Rule::id => NodeRef::new(Node::Id(String::from(expr.as_str()))),
+            Rule::list => Node::List(NodeRef::new(expr.into_inner().map(parse_value).collect())),
+            Rule::number => Node::Num(expr.as_str().parse().unwrap()),
+            Rule::boolean => Node::Bool(expr.as_str().parse().unwrap()),
+            Rule::string => Node::Str(String::from(expr.as_str())),
+            Rule::sym => Node::Sym(String::from(&expr.as_str()[1..])),
+            Rule::id => Node::Id(String::from(expr.as_str())),
             Rule::prim => parse_value(expr.into_inner().next().unwrap()),
             Rule::expr => parse_value(expr.into_inner().next().unwrap()),
 

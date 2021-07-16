@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
 
-use bevy::prelude::*;
-
 use kurt::builtins::init_builtins;
 
 use crate::kurt::{Node, NodeRef, eval};
@@ -19,7 +17,7 @@ fn main() {
     let mut root_map = HashMap::new();
     init_builtins(&mut root_map);
 
-    let root = NodeRef::new(Node::Dict(root_map));
+    let root = Node::Dict(NodeRef::new(root_map));
     let tree = parse::parse(src);
     println!("-> {}", eval::eval(root, tree));
 
