@@ -1,13 +1,22 @@
-use std::{borrow::{Borrow, BorrowMut}, collections::HashMap, vec};
+use std::{borrow::BorrowMut, collections::HashMap, vec};
 
 use crate::kurt::Node;
 
 use super::NodeRef;
 
 pub fn init_builtins(map: &mut HashMap<String, Node>) {
-    map.insert(String::from("do"), builtin(vec![String::from("exprs")], native_do));
-    map.insert(String::from("def"), builtin(vec![String::from("vals")], native_def));
-    map.insert(String::from("log"), builtin(vec![String::from("msg")], native_log));
+    map.insert(
+        String::from("do"),
+        builtin(vec![String::from("exprs")], native_do),
+    );
+    map.insert(
+        String::from("def"),
+        builtin(vec![String::from("vals")], native_def),
+    );
+    map.insert(
+        String::from("log"),
+        builtin(vec![String::from("msg")], native_log),
+    );
     // map.insert(String::from("+"), builtin(vec![String::from("a"), String::from("b")], native_add));
 }
 
@@ -20,7 +29,7 @@ fn native_do(env: Node) -> Node {
                 Node::Nil
             }
         }
-        None => Node::Nil
+        None => Node::Nil,
     }
 }
 
@@ -29,7 +38,7 @@ fn native_def(mut env: Node) -> Node {
         Some(vals) => {
             if let Node::Dict(vals_map_ref) = &vals {
                 for (k, v) in &*vals_map_ref.borrow() {
-                  env.borrow_mut().define(&k, v.clone());
+                    env.borrow_mut().define(&k, v.clone());
                 }
             }
         }

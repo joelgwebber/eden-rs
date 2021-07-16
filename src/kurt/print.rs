@@ -11,6 +11,7 @@ impl fmt::Display for Node {
             Node::Id(n) => write!(f, "{}", n),
             Node::Sym(n) => write!(f, ":{}", n),
             Node::Native(_) => write!(f, "<native>"),
+            Node::Exec => write!(f, "$!"), // TODO: Can this even happen?
 
             Node::List(vec_ref) => {
                 // TODO: There's gotta be a terser way to handle errors in this?

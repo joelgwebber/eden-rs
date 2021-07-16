@@ -1,12 +1,17 @@
 -[ This is a test ]-
+-( Of the many ways )-
+-{ Of commenting blocks }-
+-- As is this
 
--[log "w00t!"]-
--({msg: "w00t!"} log)-
-
-({
+-({
     exprs: [
         ({msg: "foo"} log)
         ({msg: "bar"} log)
         42
     ]
-} do)
+} do)-
+
+-- ({msg: "w00t!"} log)
+-- (log "w00t!")
+
+({x: 42} x)

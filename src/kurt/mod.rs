@@ -31,6 +31,8 @@ pub enum Node {
     List(NodeRef<Vec<Node>>),
     Dict(NodeRef<HashMap<String, Node>>),
     Block(NodeRef<(Vec<Node>, Node)>),
+
+    Exec,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -101,6 +103,7 @@ impl Clone for Node {
             Node::List(r) => Node::List(r.clone()),
             Node::Dict(r) => Node::Dict(r.clone()),
             Node::Block(r) => Node::Block(r.clone()),
+            Node::Exec => Node::Exec,
         }
     }
 }
