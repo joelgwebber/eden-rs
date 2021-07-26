@@ -19,17 +19,17 @@ pub fn parse(src: String) -> Node {
     fn parse_value(expr: Pair<Rule>) -> Node {
         match expr.as_rule() {
             Rule::dict => {
-                let mut map = HashMap::<String, Node>::new();
+                let mut vec = Vec::<(Node, Node)>::new();
                 expr.into_inner().for_each(|pair| match pair.as_rule() {
                     Rule::pair => {
                         let mut inner_rules = pair.into_inner();
-                        let sym = inner_rules.next().unwrap().as_str();
+                        let key = parse_value(inner_rules.next().unwrap());
                         let value = parse_value(inner_rules.next().unwrap());
-                        map.insert(String::from(sym), value);
+                        vec.push((key, value));
                     }
                     _ => unreachable!(),
                 });
-                Node::Dict(NodeRef::new(map))
+                Node::DictDef(NodeRef::new(vec))
             }
 
             Rule::block => {

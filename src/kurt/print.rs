@@ -24,6 +24,13 @@ impl fmt::Display for Node {
                 write!(f, "]")
             }
 
+            Node::DictDef(map_ref) => {
+                write!(f, "{{")?;
+                write_pairs(f, &*map_ref.borrow())?;
+                write!(f, "}}")?;
+                Ok(())
+            }
+
             Node::Dict(map_ref) => {
                 write!(f, "{{")?;
                 write_map(f, &*map_ref.borrow())?;
@@ -44,6 +51,39 @@ impl fmt::Display for Node {
     }
 }
 
+fn write_vec<T:Display>(f: &mut fmt::Formatter, v: &Vec<T>) -> fmt::Result {
+    use std::fmt::Write;
+
+    let mut i = 0;
+    for node in v {
+        node.fmt(f)?;
+        i += 1;
+        if i < v.len() {
+            f.write_char(' ')?;
+        }
+    }
+    Ok(())
+}
+
+fn write_pairs(f: &mut fmt::Formatter, m: &Vec<(Node, Node)>) -> fmt::Result {
+    use std::fmt::Write;
+
+    let mut i = 0;
+    for (key, node) in m {
+        write!(f, "{}: ", key)?;
+        match node {
+            Node::Dict(_) => { f.write_str("{...}"); () }
+            Node::List(_) => { f.write_str("[...]"); () }
+            _ => node.fmt(f)?,
+        }
+        if i < m.len() - 1 {
+            f.write_char(' ')?;
+        }
+        i += 1;
+    }
+    Ok(())
+}
+
 fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
     use std::fmt::Write;
 
@@ -59,20 +99,6 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
             f.write_char(' ')?;
         }
         i += 1;
-    }
-    Ok(())
-}
-
-fn write_vec<T:Display>(f: &mut fmt::Formatter, v: &Vec<T>) -> fmt::Result {
-    use std::fmt::Write;
-
-    let mut i = 0;
-    for node in v {
-        node.fmt(f)?;
-        i += 1;
-        if i < v.len() {
-            f.write_char(' ')?;
-        }
     }
     Ok(())
 }

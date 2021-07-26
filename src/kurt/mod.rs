@@ -60,6 +60,7 @@ pub enum Node {
     Native(fn(Node) -> Node),
 
     List(NodeRef<Vec<Node>>),
+    DictDef(NodeRef<Vec<(Node, Node)>>),
     Dict(NodeRef<HashMap<String, Node>>),
     Block(NodeRef<Block>),
     Apply(NodeRef<Vec<Node>>),
@@ -138,6 +139,7 @@ impl Clone for Node {
             Node::Sym(x) => Node::Sym(x.clone()),
             Node::Native(x) => Node::Native(*x),
             Node::List(r) => Node::List(r.clone()),
+            Node::DictDef(r) => Node::DictDef(r.clone()),
             Node::Dict(r) => Node::Dict(r.clone()),
             Node::Block(r) => Node::Block(r.clone()),
             Node::Apply(r) => Node::Apply(r.clone()),
@@ -208,26 +210,3 @@ impl Node {
         }
     }
 }
-
-// pub fn _get(&self, name: &String) -> Node {
-//     match self {
-//         // Check current dict.
-//         Node::Dict(map_ref) => {
-//             if let Some(n) = map_ref.borrow().get(name) {
-//                 return n.clone();
-//             }
-
-//             // Check parent.
-//             match map_ref.borrow().get("^") {
-//                 Some(next) => next.borrow().get(name),
-//                 None => panic!("couldn't find symbol '{}'\nenv: {}", name, self),
-//             }
-//         }
-
-//         // TODO: integer lookups for lists.
-//         Node::List(_) => unimplemented!(),
-
-//         _ => panic!("couldn't find symbol {}", name),
-//     }
-// }
-

@@ -33,7 +33,7 @@ sym = @{ ":" ~ id }
 
 prim = { number | string | boolean | nil }
 list = { "[" ~ expr* ~ "]" }
-pair = { id ~ ":" ~ expr }
+pair = { expr ~ expr }
 dict = { "{" ~ pair* ~ "}" }
 apply = { "(" ~ expr* ~ ")" }
 args = { id* ~ "|" }

@@ -20,6 +20,7 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::Bool(_) => expr.clone(),
         Node::Str(_) => expr.clone(),
         Node::Sym(_) => expr.clone(),
+        Node::Dict(_) => expr.clone(),
 
         // Except blocks, which capture their environment.
         Node::Block(bref) => {
@@ -46,18 +47,22 @@ pub fn eval(env: Node, expr: Node) -> Node {
             }
         }
 
-        // Dictionaries evaluate to themselves, but with their values evaluated.
-        // { key:expr... } -> { key:[eval expr]... }
-        Node::Dict(map_ref) => {
+        // Dictionary defs evaluate to dicts, with their keys and values evaluated.
+        // { expr expr ... } -> { [eval expr] : [eval expr] ... }
+        Node::DictDef(map_ref) => {
             let mut map = HashMap::<String, Node>::new();
-            for (key, node) in &*map_ref.borrow() {
-                map.insert(key.clone(), eval(env.clone(), node.clone()));
+            for (key_node, node) in &*map_ref.borrow() {
+                if let Node::Sym(key) = key_node {
+                    map.insert(key.clone(), eval(env.clone(), node.clone()));
+                } else {
+                    panic!("expected sym key, got {}", key_node);
+                }
             }
             Node::Dict(NodeRef::new(map))
         }
 
-        // Lists also evaluate to themselves.
-        // [exprs...] -> [eval [exprs...]]
+        // Lists also evaluate to themselves, with their values evaluated.
+        // [expr ...] -> [ [eval expr] ...]
         Node::List(vec_ref) => {
             let vec = &*vec_ref.borrow();
             Node::List(NodeRef::new(
