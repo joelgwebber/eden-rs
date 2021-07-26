@@ -1,8 +1,8 @@
 use super::{Node, builtins::loc};
 
 pub fn native_eq(env: Node) -> Node {
-    let _a = loc(env.clone(), "x");
-    let _b = loc(env.clone(), "y");
+    let _a = loc(&env, "x");
+    let _b = loc(&env, "y");
 
     Node::Bool(node_eq(_a, _b))
 }

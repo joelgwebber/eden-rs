@@ -1,0 +1,8 @@
+(do [
+    (def {:caught false})
+    (try
+        (| not-a-thing)
+        (| set {:caught true})
+    )
+    (expect true caught)
+])

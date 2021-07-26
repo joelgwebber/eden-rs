@@ -30,6 +30,11 @@ mod tests {
     }
 
     #[test]
+    fn panics() {
+        kurt_test_file("src/kurt/tests/panics.kurt");
+    }
+
+    #[test]
     fn math() {
         kurt_test_file("src/kurt/tests/math.kurt");
     }
@@ -59,8 +64,8 @@ mod tests {
     }
 
     fn native_expect(env: Node) -> Node {
-        let expect = loc(env.clone(), "expect");
-        let expr = loc(env.clone(), "expr");
+        let expect = loc(&env, "expect");
+        let expr = loc(&env, "expr");
         if !node_eq(expect.clone(), expr.clone()) {
             assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
         }

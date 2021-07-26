@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
+use std::panic::RefUnwindSafe;
+use std::panic::UnwindSafe;
 
 use gc::Finalize;
 use gc::Gc;
@@ -65,6 +67,9 @@ pub enum Node {
     Block(NodeRef<Block>),
     Apply(NodeRef<Vec<Node>>),
 }
+
+impl UnwindSafe for Node {}
+impl RefUnwindSafe for Node {}
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Block {
@@ -173,9 +178,7 @@ impl Node {
     pub fn get(&self, name: &String) -> Node {
         let target = self.find(name);
         match &target {
-            Node::Dict(map_ref) => {
-                map_ref.borrow().get(name).unwrap().clone()
-            }
+            Node::Dict(map_ref) => map_ref.borrow().get(name).unwrap().clone(),
             Node::Nil => panic!("{} not found", name),
             _ => panic!("get requires a dict"),
         }
@@ -193,7 +196,7 @@ impl Node {
             // Check current dict.
             Node::Dict(map_ref) => {
                 if map_ref.borrow().contains_key(name) {
-                    return self.clone()
+                    return self.clone();
                 }
 
                 // Check parent.
