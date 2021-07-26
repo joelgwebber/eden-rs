@@ -2,6 +2,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use std::collections::HashMap;
 
+use crate::kurt::Block;
 use crate::kurt::Node;
 use crate::kurt::NodeRef;
 
@@ -33,22 +34,24 @@ pub fn parse(src: String) -> Node {
 
             Rule::block => {
                 let mut rules = expr.into_inner();
-                let args = rules
+                let params = rules
                     .next()
                     .unwrap()
                     .into_inner()
-                    .map(parse_value)
+                    .map(|expr| match expr.as_rule() {
+                        Rule::id => expr.as_str().to_string(),
+                        _ => panic!(),
+                    })
                     .collect();
                 let exprs = rules.map(parse_value).collect();
-                Node::Block(NodeRef::new((args, Node::List(NodeRef::new(exprs)))))
+                Node::Block(NodeRef::new(Block {
+                    params: params,
+                    env: Node::Nil,
+                    expr: Node::Apply(NodeRef::new(exprs)),
+                }))
             }
 
-            Rule::exec => {
-                let mut list = vec![Node::Id("$".to_string())];
-                list.extend(expr.into_inner().map(parse_value));
-                Node::List(NodeRef::new(list))
-            }
-
+            Rule::apply => Node::Apply(NodeRef::new(expr.into_inner().map(parse_value).collect())),
             Rule::list => Node::List(NodeRef::new(expr.into_inner().map(parse_value).collect())),
             Rule::number => Node::Num(expr.as_str().parse().unwrap()),
             Rule::boolean => Node::Bool(expr.as_str().parse().unwrap()),

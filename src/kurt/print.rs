@@ -1,5 +1,5 @@
 use super::Node;
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt::{self, Display}};
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -11,17 +11,20 @@ impl fmt::Display for Node {
             Node::Id(n) => write!(f, "{}", n),
             Node::Sym(n) => write!(f, ":{}", n),
             Node::Native(_) => write!(f, "<native>"),
-            Node::Exec => write!(f, "$!"), // TODO: Can this even happen?
+
+            Node::Apply(vec_ref) => {
+                write!(f, "(")?;
+                write_vec(f, &*vec_ref.borrow())?;
+                write!(f, ")")
+            }
 
             Node::List(vec_ref) => {
-                // TODO: There's gotta be a terser way to handle errors in this?
                 write!(f, "[")?;
                 write_vec(f, &*vec_ref.borrow())?;
                 write!(f, "]")
             }
 
             Node::Dict(map_ref) => {
-                // TODO: There's gotta be a terser way to handle errors in this?
                 write!(f, "{{")?;
                 write_map(f, &*map_ref.borrow())?;
                 write!(f, "}}")?;
@@ -30,10 +33,11 @@ impl fmt::Display for Node {
 
             Node::Block(block_ref) => {
                 let block = &*block_ref.borrow();
+                // TODO: env?
                 write!(f, "(")?;
-                write_vec(f, &block.0)?;
+                write_vec(f, &block.params)?;
                 write!(f, " | ")?;
-                block.1.fmt(f)?;
+                block.expr.fmt(f)?;
                 write!(f, ")")
             }
         }
@@ -41,13 +45,16 @@ impl fmt::Display for Node {
 }
 
 fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
-    use std::fmt::Display;
     use std::fmt::Write;
 
     let mut i = 0;
     for (name, node) in m {
         write!(f, "{}: ", name)?;
-        node.fmt(f)?;
+        match node {
+            Node::Dict(_) => { f.write_str("{...}"); () }
+            Node::List(_) => { f.write_str("[...]"); () }
+            _ => node.fmt(f)?,
+        }
         if i < m.len() - 1 {
             f.write_char(' ')?;
         }
@@ -56,8 +63,7 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
     Ok(())
 }
 
-fn write_vec(f: &mut fmt::Formatter, v: &Vec<Node>) -> fmt::Result {
-    use std::fmt::Display;
+fn write_vec<T:Display>(f: &mut fmt::Formatter, v: &Vec<T>) -> fmt::Result {
     use std::fmt::Write;
 
     let mut i = 0;

@@ -1,10 +1,6 @@
-use std::collections::HashMap;
 use std::fs;
 
-use kurt::builtins::init_builtins;
-
-use crate::kurt::{Node, NodeRef, eval};
-use crate::kurt::parse;
+use crate::kurt::Kurt;
 
 mod kurt;
 
@@ -14,17 +10,13 @@ extern crate pest_derive;
 fn main() {
     let src = fs::read_to_string("test.kurt").expect("cannot read file");
 
-    let mut root_map = HashMap::new();
-    init_builtins(&mut root_map);
-
-    let root = Node::Dict(NodeRef::new(root_map));
-    let tree = parse::parse(src);
-    println!("-> {}", eval::eval(root, tree));
+    let mut kurt = Kurt::new();
+    println!("-> {}", kurt.eval_src(src.as_str()));
 
     // App::build()
     //     .insert_resource(Msaa { samples: 4 })
     //     .insert_resource(WindowDescriptor {
-    //         title: "Eden".to_string(),
+    //         title: "Eden".into(),
     //         width: 1600.,
     //         height: 1200.,
     //         ..Default::default()

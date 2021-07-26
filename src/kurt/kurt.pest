@@ -35,10 +35,10 @@ prim = { number | string | boolean | nil }
 list = { "[" ~ expr* ~ "]" }
 pair = { id ~ ":" ~ expr }
 dict = { "{" ~ pair* ~ "}" }
-exec = { "(" ~ expr* ~ ")" }
-args = { id+ ~ "|" }
+apply = { "(" ~ expr* ~ ")" }
+args = { id* ~ "|" }
 block = { "(" ~ args ~ expr* ~ ")" }
-expr = { prim | sym | id | list | dict | exec | block }
+expr = { prim | sym | id | list | dict | block | apply }
 
 file = {
     SOI ~

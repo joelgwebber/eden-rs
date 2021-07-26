@@ -1,12 +1,18 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::Node;
+use crate::kurt::{Block, Node};
 
 use super::NodeRef;
 
+const DEBUG: bool = false;
+
 // Evaluates a node within the given environment.
 pub fn eval(env: Node, expr: Node) -> Node {
-    println!("eval -- {} :: {}", env.borrow(), expr.borrow());
+    if DEBUG {
+        // println!("eval -- {} :: {}", env.borrow(), expr.borrow());
+        println!("eval :: {}", expr.borrow());
+    }
+
     match &expr {
         // Most expressions just evaluate to themselves.
         Node::Nil => expr.clone(),
@@ -14,27 +20,30 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::Bool(_) => expr.clone(),
         Node::Str(_) => expr.clone(),
         Node::Sym(_) => expr.clone(),
-        Node::Block(_) => expr.clone(),
-        Node::Native(f) => f(env),
 
-        // Except identifiers, which are always looked up in the current scope.
-        // ident -> env:ident
-        Node::Id(s) => {
-            match s.as_str() {
-                // Special cases:
-                // - env refers to the current environment.
-                // - $ evaluates to a list exec marker.
-                "env" => env.clone(),
-                "$" => Node::Exec,
-                _ => match env.borrow().lookup_node(expr.clone()) {
-                    Ok(n) => n,
-                    Err(msg) => panic!("lookup failed: {}", msg),
-                },
+        // Except blocks, which capture their environment.
+        Node::Block(bref) => {
+            let b = &*bref.borrow();
+            if b.env == Node::Nil {
+                // Grab the block's environment if one isn't already specified.
+                Node::Block(NodeRef::new(Block {
+                    params: b.params.clone(),
+                    env: env.clone(),
+                    expr: b.expr.clone(),
+                }))
+            } else {
+                expr.clone()
             }
         }
 
-        Node::Exec => {
-            panic!("cannot execute here") // TODO: Can this even happen?
+        // And identifiers, which are always looked up in the current scope.
+        // ident -> env:ident
+        Node::Id(s) => {
+            match s.as_str() {
+                // Special case: env refers to the current environment.
+                "env" => env.clone(),
+                _ => env.borrow().get_node(expr.clone()),
+            }
         }
 
         // Dictionaries evaluate to themselves, but with their values evaluated.
@@ -51,97 +60,114 @@ pub fn eval(env: Node, expr: Node) -> Node {
         // [exprs...] -> [eval [exprs...]]
         Node::List(vec_ref) => {
             let vec = &*vec_ref.borrow();
-            match vec.len() {
-                // [] -> Empty list
-                0 => Node::List(NodeRef::new(vec![])),
-
-                _ => {
-                    let first = eval(env.clone(), vec.first().unwrap().clone());
-                    match first {
-                        // Except for the special case of [$ ...], which is a special form that means "exec".
-                        // Note that we don't evaluate the other expressions here. That's exec()'s job.
-                        Node::Exec => exec(env.clone(), vec[1..].to_vec()),
-
-                        // Regular list; evaluate the rest of the items.
-                        _ => {
-                            let mut exprs = vec![first];
-                            vec[1..]
-                                .into_iter()
-                                .for_each(|node| exprs.push(eval(env.clone(), node.clone())));
-                            Node::List(NodeRef::new(exprs))
-                        }
-                    }
-                }
-            }
+            Node::List(NodeRef::new(
+                vec.into_iter()
+                    .map(|node| eval(env.clone(), node.clone()))
+                    .collect(),
+            ))
         }
+
+        // Apply list:
+        // (exprs...)
+        Node::Apply(vec_ref) => {
+            let exprs = &*vec_ref.borrow();
+            apply(env.clone(), exprs.clone())
+        }
+
+        // Invoke native func.
+        Node::Native(f) => f(env),
     }
 }
 
-// Executes a list -- (foo bar baz ...) or [$ foo bar baz].
+// Applies a list -- (foo bar baz ...) or [$ foo bar baz ...].
 // This covers a number of cases:
-// - Block execution with args   -- (block arg0 arg1 ...)
-// - Block execution in env      -- ({env} block)
-// - Expr execution in env       -- ({env} expr)
-// - Dict field access           -- ({dict} key)
-// - List field access           -- ([list] idx)
-// - Single expression execution -- (expr) => expr
-// - Empty list execution        -- () => nil
+// - Apply Block to args     -- (block arg0 arg1 ...)
+// - Apply Block to env      -- ({env} block)
+// - Apply expr to env       -- ({env} expr)
+// - Dict field access       -- ({dict} key)
+// - List field access       -- ([list] idx)
+// - Apply single expression -- (expr) => expr
+// - Apply empty list        -- () => nil
 //
-pub fn exec(env: Node, exprs: Vec<Node>) -> Node {
-    let ls = Node::List(NodeRef::new(exprs.clone()));
-    println!("exec -- {} :: {}", env.clone(), ls);
+pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
+    if DEBUG {
+        let ls = Node::List(NodeRef::new(exprs.clone()));
+        // println!("apply -- {} :: {}", env.clone(), ls);
+        println!("apply :: {}", ls);
+    }
 
-    match exprs.len() {
-        // () -> nil
-        0 => Node::Nil,
+    if exprs.len() == 0 {
+        return Node::Nil;
+    }
+
+    let first = &eval(env.clone(), exprs.first().unwrap().clone());
+    match first {
+        // (block expr*) -> positional arg invocation
+        Node::Block(_) => {
+            invoke(env.clone(), first.clone(), exprs[1..].to_vec())
+        }
+
+        // (dict ...) ->
+        Node::Dict(map_ref) => {
+            if exprs.len() != 2 {
+                panic!("dict can only be applied with a single expr")
+            }
+
+            let second = &eval(env.clone(), exprs.get(1).unwrap().clone());
+            match second {
+                // (dict block) -> apply block expr to dict
+                Node::Block(block_ref) => {
+                    let block = &*block_ref.borrow();
+                    let params =
+                        new_frame(env.clone(), block.env.clone(), (*map_ref.borrow()).clone());
+                    eval(Node::Dict(NodeRef::new(params)), block.expr.clone())
+                }
+
+                // (dict expr) -> eval expr in env
+                _ => eval(first.clone(), second.clone()),
+            }
+        }
+
+        // TODO: (list idx) -> lookup item
+        Node::List(_) => unimplemented!(),
 
         _ => {
-            let first = exprs.first().unwrap().borrow();
-            match first {
-                // (block expr*) -> positional arg invocation
-                Node::Block(_) => invoke(exprs[1..].to_vec()),
-
-                // TODO: (list idx) -> lookup item
-                Node::List(_) => unimplemented!(),
-
-                // (dict expr) ->
-                Node::Dict(map_ref) => {
-                    if exprs.len() == 1 {
-                        panic!("unable to exec dict")
-                    } else if exprs.len() > 2 {
-                        panic!("dict can only be exec'd with a single expr")
-                    }
-
-                    let second = exprs.get(1).unwrap();
-                    match second {
-                        // (dict block) -> apply dict to block expr
-                        Node::Block(block_ref) => {
-                            let params = copy_map(&*map_ref.borrow());
-                            eval(
-                                Node::Dict(NodeRef::new(params)),
-                                block_ref.borrow().1.clone(),
-                            )
-                        }
-
-                        // (dict expr) -> eval expr in env
-                        _ => eval(first.clone(), second.clone()),
-                    }
-                }
-
-                _ => panic!("unable to exec {:?}", first.to_string()),
+            if exprs.len() == 1 {
+                first.clone()
+            } else {
+                panic!("unable to apply ({} ...)", first)
             }
         }
     }
 }
 
-fn invoke(vec: Vec<Node>) -> Node {
-    Node::Nil
+fn invoke(env: Node, block_node: Node, args: Vec<Node>) -> Node {
+    if DEBUG {
+        let ls = Node::List(NodeRef::new(args.clone()));
+        // println!("invoke -- {} :: {}", env.clone(), ls);
+        println!("invoke :: {}", ls);
+    }
+
+    if let Node::Block(block_ref) = block_node.borrow() {
+        let block = &*block_ref.borrow();
+        let mut frame = HashMap::<String, Node>::new();
+        // TODO: validate param/arg match.
+        for i in 0..args.len() {
+            frame.insert(block.params[i].clone(), args[i].clone());
+        }
+        let nf = Node::Dict(NodeRef::new(frame));
+        apply(env.clone(), vec![nf.clone(), block_node.clone()])
+    } else {
+        panic!("tried to invoke with non-block node {}", block_node)
+    }
 }
 
-fn copy_map(map: &HashMap<String, Node>) -> HashMap<String, Node> {
+fn new_frame(env: Node, sup: Node, map: HashMap<String, Node>) -> HashMap<String, Node> {
     let mut new_map = HashMap::<String, Node>::new();
     for (key, node) in map {
         new_map.insert(key.clone(), node.clone());
     }
+    new_map.insert("@".to_string(), env.clone());
+    new_map.insert("^".to_string(), sup.clone());
     new_map
 }

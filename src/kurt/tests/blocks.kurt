@@ -1,0 +1,16 @@
+(do [
+    -- no-arg
+    (def {fn: (| 42)})
+    (expect 42 (fn))
+
+    -- single arg
+    (def {fn2: (x | + [x 42])})
+    (expect 44 (fn2 2))
+
+    -- close over var
+    (def {
+        outer: 42
+        fn3: (x | + [x outer])
+    })
+    (expect 44 (fn3 2))
+])

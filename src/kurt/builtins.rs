@@ -1,48 +1,128 @@
-use std::{borrow::BorrowMut, collections::HashMap, vec};
+use std::{collections::HashMap, vec};
 
-use crate::kurt::Node;
+use velcro::vec_from;
 
-use super::NodeRef;
+use crate::kurt::{eq::native_eq, Node};
+
+use super::{eval::apply, Block, NodeRef};
 
 pub fn init_builtins(map: &mut HashMap<String, Node>) {
-    map.insert(
-        String::from("do"),
-        builtin(vec![String::from("exprs")], native_do),
-    );
-    map.insert(
-        String::from("def"),
-        builtin(vec![String::from("vals")], native_def),
-    );
-    map.insert(
-        String::from("log"),
-        builtin(vec![String::from("msg")], native_log),
-    );
-    // map.insert(String::from("+"), builtin(vec![String::from("a"), String::from("b")], native_add));
+    map.insert("do".into(), builtin(vec_from!["exprs"], native_do));
+    map.insert("def".into(), builtin(vec_from!["vals"], native_def));
+    map.insert("set".into(), builtin(vec_from!["vals"], native_set));
+    map.insert("log".into(), builtin(vec_from!["msg"], native_log));
+    map.insert("=".into(), builtin(vec_from!["x", "y"], native_eq));
+    map.insert("+".into(), builtin(vec_from!["vals"], native_add));
+    map.insert("*".into(), builtin(vec_from!["vals"], native_mul));
+    map.insert("-".into(), builtin(vec_from!["x", "y"], native_sub));
+    map.insert("/".into(), builtin(vec_from!["x", "y"], native_div));
 }
 
-fn native_do(env: Node) -> Node {
-    match loc(&env, "exprs") {
-        Some(exprs) => {
-            if let Node::List(vec_ref) = &exprs {
-                vec_ref.borrow().last().unwrap().clone()
-            } else {
-                Node::Nil
-            }
+pub fn builtin(args: Vec<String>, f: fn(Node) -> Node) -> Node {
+    Node::Block(NodeRef::new(Block {
+        params: args,
+        env: Node::Nil,
+        expr: Node::Native(f),
+    }))
+}
+
+pub fn loc(env: Node, name: &str) -> Node {
+    if let Node::Dict(env_map_ref) = &env {
+        let env_map = &*env_map_ref.borrow();
+        match env_map.get(name) {
+            Some(result) => result.clone(),
+            None => panic!("missing local '{}' in {}", name, env),
         }
-        None => Node::Nil,
+    } else {
+        panic!("expected dict env, got '{}'", env)
     }
 }
 
-fn native_def(mut env: Node) -> Node {
-    match loc(&env, "vals") {
-        Some(vals) => {
-            if let Node::Dict(vals_map_ref) = &vals {
-                for (k, v) in &*vals_map_ref.borrow() {
-                    env.borrow_mut().define(&k, v.clone());
-                }
+pub fn loc_opt(env: Node, name: &str) -> Option<Node> {
+    if let Node::Dict(env_map_ref) = &env {
+        let env_map = &*env_map_ref.borrow();
+        match env_map.get(name) {
+            Some(node) => Some(node.clone()),
+            None => None,
+        }
+    } else {
+        panic!("expected dict env, got '{}'", env)
+    }
+}
+
+pub fn loc_str(env: Node, name: &str) -> String {
+    let node = loc(env.clone(), name);
+    match &node {
+        Node::Str(s) => s.clone(),
+        _ => panic!(),
+    }
+}
+
+pub fn loc_num(env: Node, name: &str) -> f64 {
+    let node = loc(env.clone(), name);
+    match &node {
+        Node::Num(x) => *x,
+        _ => panic!(),
+    }
+}
+
+pub fn loc_opt_num(env: Node, name: &str) -> Option<f64> {
+    match loc_opt(env.clone(), name) {
+        Some(node) => {
+            match &node {
+                Node::Num(x) => Some(*x),
+                _ => panic!(),
             }
         }
-        None => panic!("wut"),
+        None => None
+    }
+}
+
+fn maybe_apply(env: Node, expr: Node) -> Node {
+    match expr {
+        Node::Block(_) => return apply(env.clone(), vec![expr.clone()]),
+        _ => return expr.clone(),
+    }
+}
+
+fn native_do(env: Node) -> Node {
+    let exprs = loc(env.clone(), "exprs");
+    match &exprs {
+        Node::List(vec_ref) => {
+            let mut last = Node::Nil;
+            for expr in &*vec_ref.borrow() {
+                last = maybe_apply(env.clone(), expr.clone());
+            }
+            last
+        }
+        _ => exprs,
+    }
+}
+
+fn native_def(env: Node) -> Node {
+    let this = loc(env.clone(), "@");
+    let vals = loc(env.clone(), "vals");
+    match &vals {
+        Node::Dict(vals_map_ref) => {
+            for (k, v) in &*vals_map_ref.borrow() {
+                this.def(&k, v.clone());
+            }
+        }
+        _ => panic!("def requires a dict"),
+    }
+    Node::Nil
+}
+
+fn native_set(env: Node) -> Node {
+    let this = loc(env.clone(), "@");
+    let vals = loc(env.clone(), "vals");
+    match &vals {
+        Node::Dict(vals_map_ref) => {
+            for (k, v) in &*vals_map_ref.borrow() {
+                this.set(&k, v.clone());
+            }
+        }
+        _ => panic!("def requires a dict"),
     }
     Node::Nil
 }
@@ -52,30 +132,49 @@ fn native_log(env: Node) -> Node {
     Node::Nil
 }
 
-fn builtin(args: Vec<String>, f: fn(env: Node) -> Node) -> Node {
-    let nargs: Vec<Node> = args.iter().map(|arg| Node::Sym(arg.clone())).collect();
-    Node::Block(NodeRef::new((nargs, Node::Native(f))))
+fn native_add(env: Node) -> Node {
+    let mut total = 0f64;
+    addmul_helper(env, |x| total += x);
+    Node::Num(total)
 }
 
-fn loc(env: &Node, name: &str) -> Option<Node> {
-    if let Node::Dict(env_map_ref) = &env {
-        let env_map = &*env_map_ref.borrow();
-        let result = env_map.get(name).unwrap();
-        Some(result.clone())
-    } else {
-        None
+fn native_mul(env: Node) -> Node {
+    let mut total = 1f64;
+    addmul_helper(env, |x| total *= x);
+    Node::Num(total)
+}
+
+fn addmul_helper<F>(env: Node, mut func: F)
+where
+    F: FnMut(f64),
+{
+    match &loc(env, "vals") {
+        Node::List(vec_ref) => {
+            for val in &*vec_ref.borrow() {
+                match val {
+                    Node::Num(x) => func(*x),
+                    _ => panic!("+ requires numeric values"),
+                }
+            }
+        }
+        _ => panic!("expected vals list"),
     }
 }
 
-fn loc_str(env: Node, name: &str) -> String {
-    match &env {
-        Node::Dict(map_ref) => match map_ref.borrow().get(name) {
-            Some(loc) => match loc {
-                Node::Str(s) => s.clone(),
-                _ => String::from(""),
-            },
-            None => unimplemented!(),
-        },
-        _ => unimplemented!(),
+fn native_sub(env: Node) -> Node {
+    let x = loc_num(env.clone(), "x");
+    let oy = loc_opt_num(env.clone(), "y");
+    match oy {
+        Some(y) => Node::Num(x - y),
+        None => Node::Num(-x),
+    }
+}
+
+fn native_div(env: Node) -> Node {
+    let x = loc_num(env.clone(), "x");
+    let oy = loc_opt_num(env.clone(), "y");
+    match oy {
+        Some(y) => Node::Num(x / y),
+        None => Node::Num(1f64 / x),
     }
 }

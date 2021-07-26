@@ -11,14 +11,45 @@ use gc::GcCellRef;
 use gc::GcCellRefMut;
 use gc::Trace;
 
+use self::builtins::init_builtins;
+
 pub mod builtins;
+pub mod eq;
 pub mod eval;
 pub mod parse;
 pub mod print;
 
+mod tests;
+
+pub struct Kurt {
+    pub root: Node,
+}
+
+impl Kurt {
+    pub fn new() -> Kurt {
+        let mut root_map = HashMap::new();
+        init_builtins(&mut root_map);
+        Kurt {
+            root: Node::Dict(NodeRef::new(root_map)),
+        }
+    }
+
+    pub fn eval_src(&mut self, src: &str) -> Node {
+        let expr = parse::parse(src.into());
+        eval::eval(self.root.clone(), expr)
+    }
+
+    pub fn def(&mut self, sym: String, val: Node) {
+        if let Node::Dict(map_ref) = self.root.borrow() {
+            let map = &mut *map_ref.borrow_mut();
+            map.insert(sym, val);
+        }
+    }
+}
+
 // Node represents both the AST and runtime state.
 // Parsing produces a Node graph, and evaluation updates that graph.
-#[derive(Trace, Finalize)]
+#[derive(Trace, Finalize, PartialEq)]
 pub enum Node {
     Nil,
     Num(f64),
@@ -26,13 +57,19 @@ pub enum Node {
     Str(String),
     Id(String),
     Sym(String),
-    Native(fn(env: Node) -> Node),
+    Native(fn(Node) -> Node),
 
     List(NodeRef<Vec<Node>>),
     Dict(NodeRef<HashMap<String, Node>>),
-    Block(NodeRef<(Vec<Node>, Node)>),
+    Block(NodeRef<Block>),
+    Apply(NodeRef<Vec<Node>>),
+}
 
-    Exec,
+#[derive(Trace, Finalize, PartialEq)]
+pub struct Block {
+    params: Vec<String>,
+    env: Node,
+    expr: Node,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -58,7 +95,7 @@ impl Display for BorrowMutError {
 pub type Ref<'a, T> = GcCellRef<'a, T>;
 pub type RefMut<'a, T, U> = GcCellRefMut<'a, T, U>;
 
-#[derive(Trace, Finalize)]
+#[derive(Trace, Finalize, PartialEq)]
 pub struct NodeRef<T: Trace + 'static>(Gc<GcCell<T>>);
 
 impl<T: Trace> NodeRef<T> {
@@ -103,48 +140,94 @@ impl Clone for Node {
             Node::List(r) => Node::List(r.clone()),
             Node::Dict(r) => Node::Dict(r.clone()),
             Node::Block(r) => Node::Block(r.clone()),
-            Node::Exec => Node::Exec,
+            Node::Apply(r) => Node::Apply(r.clone()),
         }
     }
 }
 
 impl Node {
-    pub fn define(&mut self, k: &String, val: Node) -> Result<(), String> {
+    pub fn def(&self, name: &String, val: Node) {
         match self {
-            Node::Dict(ref mut map_ref) => {
-                map_ref.borrow_mut().insert(k.clone(), val);
-                Ok(())
+            Node::Dict(map_ref) => {
+                let map = &mut *map_ref.borrow_mut();
+                map.insert(name.clone(), val);
             }
-            _ => Err(String::from("def only works on dicts")),
+            _ => panic!("def requires a dict"),
         }
     }
 
-    pub fn lookup(&self, name: &String) -> Result<Node, String> {
+    pub fn set(&self, name: &String, val: Node) {
+        let target = self.find(name);
+        match &target {
+            Node::Dict(map_ref) => {
+                let map = &mut *map_ref.borrow_mut();
+                map.insert(name.clone(), val);
+            }
+            Node::Nil => panic!("{} not found", name),
+            _ => panic!("set requires a dict"),
+        }
+    }
+
+    pub fn get(&self, name: &String) -> Node {
+        let target = self.find(name);
+        match &target {
+            Node::Dict(map_ref) => {
+                map_ref.borrow().get(name).unwrap().clone()
+            }
+            Node::Nil => panic!("{} not found", name),
+            _ => panic!("get requires a dict"),
+        }
+    }
+
+    pub fn get_node(&self, name: Node) -> Node {
+        if let Node::Id(s) = &*name.borrow() {
+            return self.get(s);
+        }
+        panic!("couldn't find symbol")
+    }
+
+    fn find(&self, name: &String) -> Node {
         match self {
             // Check current dict.
             Node::Dict(map_ref) => {
-                if let Some(n) = map_ref.borrow().get(name) {
-                    return Ok(n.clone());
+                if map_ref.borrow().contains_key(name) {
+                    return self.clone()
                 }
 
                 // Check parent.
                 match map_ref.borrow().get("^") {
-                    Some(next) => next.borrow().lookup(name),
-                    None => Err(String::from("couldn't find symbol")),
+                    Some(next) => next.borrow().find(name),
+                    None => panic!("couldn't find symbol '{}'\nenv: {}", name, self),
                 }
             }
 
             // TODO: integer lookups for lists.
-            Node::List(_) => Err(String::from("nyi")),
+            Node::List(_) => unimplemented!(),
 
-            _ => Err(String::from("couldn't find symbol")),
+            _ => Node::Nil,
         }
-    }
-
-    pub fn lookup_node(&self, name: Node) -> Result<Node, String> {
-        if let Node::Id(s) = &*name.borrow() {
-            return self.lookup(s);
-        }
-        Err(String::from("couldn't find symbol"))
     }
 }
+
+// pub fn _get(&self, name: &String) -> Node {
+//     match self {
+//         // Check current dict.
+//         Node::Dict(map_ref) => {
+//             if let Some(n) = map_ref.borrow().get(name) {
+//                 return n.clone();
+//             }
+
+//             // Check parent.
+//             match map_ref.borrow().get("^") {
+//                 Some(next) => next.borrow().get(name),
+//                 None => panic!("couldn't find symbol '{}'\nenv: {}", name, self),
+//             }
+//         }
+
+//         // TODO: integer lookups for lists.
+//         Node::List(_) => unimplemented!(),
+
+//         _ => panic!("couldn't find symbol {}", name),
+//     }
+// }
+
