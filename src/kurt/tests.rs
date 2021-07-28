@@ -30,6 +30,11 @@ mod tests {
     }
 
     #[test]
+    fn objects() {
+        kurt_test_file("src/kurt/tests/objects.kurt");
+    }
+
+    #[test]
     fn panics() {
         kurt_test_file("src/kurt/tests/panics.kurt");
     }

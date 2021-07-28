@@ -1,0 +1,10 @@
+(do [
+    (def {
+        :obj {
+            :foo 42
+            :bar 54
+        }
+    })
+    (expect 42 (obj :foo))
+    (expect 54 (obj :bar))
+])

@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::{borrow::{Borrow, BorrowMut}, collections::HashMap};
 
 use crate::kurt::{Block, Node};
 
@@ -19,8 +19,10 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::Num(_) => expr.clone(),
         Node::Bool(_) => expr.clone(),
         Node::Str(_) => expr.clone(),
-        Node::Sym(_) => expr.clone(),
         Node::Dict(_) => expr.clone(),
+
+        // Symbols evaluate to identifiers.
+        Node::Sym(s) => Node::Id(s.clone()),
 
         // Except blocks, which capture their environment.
         Node::Block(bref) => {
@@ -52,10 +54,11 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::DictDef(map_ref) => {
             let mut map = HashMap::<String, Node>::new();
             for (key_node, node) in &*map_ref.borrow() {
-                if let Node::Sym(key) = key_node {
-                    map.insert(key.clone(), eval(env.clone(), node.clone()));
+                let key = eval(env.clone(), key_node.clone());
+                if let Node::Id(s) = &key {
+                    map.insert(s.clone(), eval(env.clone(), node.clone()));
                 } else {
-                    panic!("expected sym key, got {}", key_node);
+                    panic!("expected id key, got {}", key_node);
                 }
             }
             Node::Dict(NodeRef::new(map))
@@ -89,10 +92,10 @@ pub fn eval(env: Node, expr: Node) -> Node {
 // - Apply Block to args     -- (block arg0 arg1 ...)
 // - Apply Block to env      -- ({env} block)
 // - Apply expr to env       -- ({env} expr)
-// - Dict field access       -- ({dict} key)
-// - List field access       -- ([list] idx)
 // - Apply single expression -- (expr) => expr
 // - Apply empty list        -- () => nil
+// - Dict field access       -- ({dict} sym)
+// - List field access       -- ([list] idx)
 //
 pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
     if DEBUG {
@@ -108,9 +111,7 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
     let first = &eval(env.clone(), exprs.first().unwrap().clone());
     match first {
         // (block expr*) -> positional arg invocation
-        Node::Block(_) => {
-            invoke(env.clone(), first.clone(), exprs[1..].to_vec())
-        }
+        Node::Block(_) => invoke(env.clone(), first.clone(), exprs[1..].to_vec()),
 
         // (dict ...) ->
         Node::Dict(map_ref) => {
@@ -128,13 +129,26 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
                     eval(Node::Dict(NodeRef::new(params)), block.expr.clone())
                 }
 
+                // (dict sym) -> lookup item
+                Node::Sym(sym) => eval(first.clone(), Node::Id(sym.clone())),
+
                 // (dict expr) -> eval expr in env
                 _ => eval(first.clone(), second.clone()),
             }
         }
 
-        // TODO: (list idx) -> lookup item
-        Node::List(_) => unimplemented!(),
+        // (list idx) -> lookup item
+        Node::List(vec_ref) => {
+            if exprs.len() != 2 {
+                panic!("lists can only be applied with a single expr")
+            }
+
+            let second = &eval(env.clone(), exprs.get(1).unwrap().clone());
+            match second {
+                Node::Num(idx) => (&*vec_ref.borrow()).get(*idx as usize).unwrap().clone(),
+                _ => panic!(),
+            }
+        }
 
         _ => {
             if exprs.len() == 1 {
@@ -158,7 +172,7 @@ fn invoke(env: Node, block_node: Node, args: Vec<Node>) -> Node {
         let mut frame = HashMap::<String, Node>::new();
         // TODO: validate param/arg match.
         for i in 0..args.len() {
-            frame.insert(block.params[i].clone(), args[i].clone());
+            frame.insert(block.params[i].clone(), eval(env.clone(), args[i].clone()));
         }
         let nf = Node::Dict(NodeRef::new(frame));
         apply(env.clone(), vec![nf.clone(), block_node.clone()])
