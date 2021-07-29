@@ -1,4 +1,4 @@
-use super::{Node, builtins::loc};
+use super::{builtins::loc, Node};
 
 pub fn native_eq(env: Node) -> Node {
     let _a = loc(&env, "x");
@@ -9,12 +9,41 @@ pub fn native_eq(env: Node) -> Node {
 
 pub fn node_eq(_a: Node, _b: Node) -> bool {
     match &_a {
-        Node::Nil => if let Node::Nil = &_b { true } else { false }
-        Node::Bool(a) => if let Node::Bool(b) = &_b { a == b } else { false }
-        Node::Num(a) => if let Node::Num(b) = &_b { a == b } else { false }
-        Node::Str(a) => if let Node::Str(b) = &_b { a == b } else { false }
-        Node::Id(a) => if let Node::Id(b) = &_b { a == b } else { false }
-        Node::Sym(a) => if let Node::Sym(b) = &_b { a == b } else { false }
+        Node::Nil => {
+            if let Node::Nil = &_b {
+                true
+            } else {
+                false
+            }
+        }
+        Node::Bool(a) => {
+            if let Node::Bool(b) = &_b {
+                a == b
+            } else {
+                false
+            }
+        }
+        Node::Num(a) => {
+            if let Node::Num(b) = &_b {
+                a == b
+            } else {
+                false
+            }
+        }
+        Node::Str(a) => {
+            if let Node::Str(b) = &_b {
+                a == b
+            } else {
+                false
+            }
+        }
+        Node::Id(a) => {
+            if let Node::Id(b) = &_b {
+                a == b
+            } else {
+                false
+            }
+        }
 
         Node::List(a_ref) => {
             if let Node::List(b_ref) = &_b {
@@ -51,6 +80,14 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
                     }
                 }
                 eq
+            } else {
+                false
+            }
+        }
+
+        Node::Quote(a) => {
+            if let Node::Quote(b) = &_b {
+                node_eq((&*a.borrow()).clone(), (&*b.borrow()).clone())
             } else {
                 false
             }

@@ -29,7 +29,6 @@ sym_char = {
   !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "|") ~ ANY
 }
 id = @{ sym_char+ }
-sym = @{ ":" ~ id }
 
 prim = { number | string | boolean | nil }
 list = { "[" ~ expr* ~ "]" }
@@ -38,7 +37,8 @@ dict = { "{" ~ pair* ~ "}" }
 apply = { "(" ~ expr* ~ ")" }
 args = { id* ~ "|" }
 block = { "(" ~ args ~ expr* ~ ")" }
-expr = { prim | sym | id | list | dict | block | apply }
+quote = { ":" ~ expr }
+expr = { prim | id | list | dict | block | apply | quote }
 
 file = {
     SOI ~

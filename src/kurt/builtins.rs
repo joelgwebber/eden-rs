@@ -11,13 +11,21 @@ pub fn init_builtins(map: &mut HashMap<String, Node>) {
     map.insert("def".into(), builtin(vec_from!["vals"], native_def));
     map.insert("set".into(), builtin(vec_from!["vals"], native_set));
     map.insert("log".into(), builtin(vec_from!["msg"], native_log));
-    map.insert("try".into(), builtin(vec_from!["block", "catch"], native_try));
+    map.insert(
+        "try".into(),
+        builtin(vec_from!["block", "catch"], native_try),
+    );
 
     map.insert("=".into(), builtin(vec_from!["x", "y"], native_eq));
     map.insert("+".into(), builtin(vec_from!["vals"], native_add));
     map.insert("*".into(), builtin(vec_from!["vals"], native_mul));
     map.insert("-".into(), builtin(vec_from!["x", "y"], native_sub));
     map.insert("/".into(), builtin(vec_from!["x", "y"], native_div));
+
+    panic::set_hook(Box::new(|info| {
+        // TODO: Something special to keep track of panic info to promote to catch blocks.
+        println!("{:?}", info);
+    }));
 }
 
 pub fn builtin(args: Vec<String>, f: fn(Node) -> Node) -> Node {
@@ -70,13 +78,11 @@ pub fn loc_num(env: &Node, name: &str) -> f64 {
 
 pub fn loc_opt_num(env: Node, name: &str) -> Option<f64> {
     match loc_opt(env.clone(), name) {
-        Some(node) => {
-            match &node {
-                Node::Num(x) => Some(*x),
-                _ => panic!(),
-            }
-        }
-        None => None
+        Some(node) => match &node {
+            Node::Num(x) => Some(*x),
+            _ => panic!(),
+        },
+        None => None,
     }
 }
 
@@ -145,7 +151,6 @@ fn native_try(env: Node) -> Node {
             if result.is_err() {
                 apply(env.clone(), vec![catch.clone()]);
             }
-            
         }
         (_, _) => panic!(),
     }

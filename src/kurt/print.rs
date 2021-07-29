@@ -1,5 +1,5 @@
 use super::Node;
-use std::{collections::HashMap, fmt::{self, Display}};
+use std::{borrow::Borrow, collections::HashMap, fmt::{self, Display}};
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -9,7 +9,6 @@ impl fmt::Display for Node {
             Node::Str(n) => write!(f, "{}", n),
             Node::Bool(n) => write!(f, "{}", n),
             Node::Id(n) => write!(f, "{}", n),
-            Node::Sym(n) => write!(f, ":{}", n),
             Node::Native(_) => write!(f, "<native>"),
 
             Node::Apply(vec_ref) => {
@@ -46,6 +45,11 @@ impl fmt::Display for Node {
                 write!(f, " | ")?;
                 block.expr.fmt(f)?;
                 write!(f, ")")
+            }
+
+            Node::Quote(node_ref) => {
+                let node = &*node_ref.borrow();
+                write!(f, ":{}", node)
             }
         }
     }

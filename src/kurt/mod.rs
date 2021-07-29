@@ -58,7 +58,6 @@ pub enum Node {
     Bool(bool),
     Str(String),
     Id(String),
-    Sym(String),
     Native(fn(Node) -> Node),
 
     List(NodeRef<Vec<Node>>),
@@ -66,6 +65,8 @@ pub enum Node {
     Dict(NodeRef<HashMap<String, Node>>),
     Block(NodeRef<Block>),
     Apply(NodeRef<Vec<Node>>),
+
+    Quote(NodeRef<Node>),
 }
 
 impl UnwindSafe for Node {}
@@ -141,13 +142,13 @@ impl Clone for Node {
             Node::Bool(x) => Node::Bool(*x),
             Node::Str(x) => Node::Str(x.clone()),
             Node::Id(x) => Node::Id(x.clone()),
-            Node::Sym(x) => Node::Sym(x.clone()),
             Node::Native(x) => Node::Native(*x),
             Node::List(r) => Node::List(r.clone()),
             Node::DictDef(r) => Node::DictDef(r.clone()),
             Node::Dict(r) => Node::Dict(r.clone()),
             Node::Block(r) => Node::Block(r.clone()),
             Node::Apply(r) => Node::Apply(r.clone()),
+            Node::Quote(r) => Node::Quote(r.clone()),
         }
     }
 }

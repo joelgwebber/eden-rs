@@ -21,8 +21,8 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::Str(_) => expr.clone(),
         Node::Dict(_) => expr.clone(),
 
-        // Symbols evaluate to identifiers.
-        Node::Sym(s) => Node::Id(s.clone()),
+        // Quotes evaluate to their wrapped nodes.
+        Node::Quote(s) => (&*s.borrow()).clone(),
 
         // Except blocks, which capture their environment.
         Node::Block(bref) => {
@@ -130,7 +130,7 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
                 }
 
                 // (dict sym) -> lookup item
-                Node::Sym(sym) => eval(first.clone(), Node::Id(sym.clone())),
+                Node::Id(id) => eval(first.clone(), Node::Id(id.clone())),
 
                 // (dict expr) -> eval expr in env
                 _ => eval(first.clone(), second.clone()),
