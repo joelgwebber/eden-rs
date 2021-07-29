@@ -136,7 +136,7 @@ fn native_set(env: Node) -> Node {
 }
 
 fn native_log(env: Node) -> Node {
-    println!("{}", loc_str(&env, "msg"));
+    println!("{}", loc(&env, "msg"));
     Node::Nil
 }
 

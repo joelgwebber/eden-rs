@@ -1,4 +1,4 @@
-use std::{borrow::{Borrow, BorrowMut}, collections::HashMap};
+use std::{borrow::Borrow, collections::HashMap};
 
 use crate::kurt::{Block, Node};
 
@@ -137,12 +137,18 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
             }
         }
 
-        // (list idx) -> lookup item
+        // (list ...) ->
         Node::List(vec_ref) => {
+            if exprs.len() == 1 {
+                // (list) -> list
+                return first.clone()
+            }
+
             if exprs.len() != 2 {
                 panic!("lists can only be applied with a single expr")
             }
 
+            // (list idx) -> lookup item
             let second = &eval(env.clone(), exprs.get(1).unwrap().clone());
             match second {
                 Node::Num(idx) => (&*vec_ref.borrow()).get(*idx as usize).unwrap().clone(),

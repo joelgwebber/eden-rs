@@ -49,6 +49,11 @@ mod tests {
         kurt_test_file("src/kurt/tests/blocks.kurt");
     }
 
+    #[test]
+    fn macros() {
+        kurt_test_file("src/kurt/tests/macros.kurt");
+    }
+
     fn kurt_test_file(filename: &str) {
         kurt_test(
             filename,

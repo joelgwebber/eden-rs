@@ -61,11 +61,11 @@ pub enum Node {
     Native(fn(Node) -> Node),
 
     List(NodeRef<Vec<Node>>),
-    DictDef(NodeRef<Vec<(Node, Node)>>),
     Dict(NodeRef<HashMap<String, Node>>),
     Block(NodeRef<Block>),
     Apply(NodeRef<Vec<Node>>),
 
+    DictDef(NodeRef<Vec<(Node, Node)>>),
     Quote(NodeRef<Node>),
 }
 
