@@ -65,6 +65,30 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
             }
         }
 
+        Node::Assoc(a_ref) => {
+            if let Node::Assoc(b_ref) = &_b {
+                let a_vec = &*a_ref.borrow();
+                let b_vec = &*b_ref.borrow();
+                let mut eq = false;
+                if a_vec.len() == b_vec.len() {
+                    eq = true;
+                    for i in 0..a_vec.len() {
+                        if !node_eq(a_vec[i].0.clone(), b_vec[i].0.clone()) {
+                            eq = false;
+                            break;
+                        }
+                        if !node_eq(a_vec[i].1.clone(), b_vec[i].1.clone()) {
+                            eq = false;
+                            break;
+                        }
+                    }
+                }
+                eq
+            } else {
+                false
+            }
+        }
+
         Node::Dict(a_ref) => {
             if let Node::Dict(b_ref) = &_b {
                 let a_map = &*a_ref.borrow();
@@ -74,6 +98,27 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
                     eq = true;
                     for (k, v) in a_map {
                         if !node_eq(v.clone(), b_map[k].clone()) {
+                            eq = false;
+                            break;
+                        }
+                    }
+                }
+                eq
+            } else {
+                false
+            }
+        }
+
+        // TODO: Merge with List.
+        Node::Apply(a_ref) => {
+            if let Node::Apply(b_ref) = &_b {
+                let a_vec = &*a_ref.borrow();
+                let b_vec = &*b_ref.borrow();
+                let mut eq = false;
+                if a_vec.len() == b_vec.len() {
+                    eq = true;
+                    for i in 0..a_vec.len() {
+                        if !node_eq(a_vec[i].clone(), b_vec[i].clone()) {
                             eq = false;
                             break;
                         }

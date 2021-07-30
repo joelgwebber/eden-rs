@@ -61,12 +61,13 @@ pub enum Node {
     Native(fn(Node) -> Node),
 
     List(NodeRef<Vec<Node>>),
+    Assoc(NodeRef<Vec<(Node, Node)>>),
     Dict(NodeRef<HashMap<String, Node>>),
     Block(NodeRef<Block>),
     Apply(NodeRef<Vec<Node>>),
 
-    DictDef(NodeRef<Vec<(Node, Node)>>),
     Quote(NodeRef<Node>),
+    Unquote(NodeRef<Node>),
 }
 
 impl UnwindSafe for Node {}
@@ -144,11 +145,12 @@ impl Clone for Node {
             Node::Id(x) => Node::Id(x.clone()),
             Node::Native(x) => Node::Native(*x),
             Node::List(r) => Node::List(r.clone()),
-            Node::DictDef(r) => Node::DictDef(r.clone()),
+            Node::Assoc(r) => Node::Assoc(r.clone()),
             Node::Dict(r) => Node::Dict(r.clone()),
             Node::Block(r) => Node::Block(r.clone()),
             Node::Apply(r) => Node::Apply(r.clone()),
             Node::Quote(r) => Node::Quote(r.clone()),
+            Node::Unquote(r) => Node::Unquote(r.clone()),
         }
     }
 }

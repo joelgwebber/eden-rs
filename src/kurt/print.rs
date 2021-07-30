@@ -1,5 +1,5 @@
 use super::Node;
-use std::{borrow::Borrow, collections::HashMap, fmt::{self, Display}};
+use std::{collections::HashMap, fmt::{self, Display}};
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -23,7 +23,7 @@ impl fmt::Display for Node {
                 write!(f, "]")
             }
 
-            Node::DictDef(map_ref) => {
+            Node::Assoc(map_ref) => {
                 write!(f, "{{")?;
                 write_pairs(f, &*map_ref.borrow())?;
                 write!(f, "}}")?;
@@ -50,6 +50,11 @@ impl fmt::Display for Node {
             Node::Quote(node_ref) => {
                 let node = &*node_ref.borrow();
                 write!(f, ":{}", node)
+            }
+
+            Node::Unquote(node_ref) => {
+                let node = &*node_ref.borrow();
+                write!(f, "\\{}", node)
             }
         }
     }

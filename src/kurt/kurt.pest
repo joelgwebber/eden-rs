@@ -26,7 +26,7 @@ str_inner = @{ char* }
 string = ${ "\"" ~ str_inner ~ "\"" }
 
 sym_char = {
-  !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "|") ~ ANY
+  !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "\\" | "|") ~ ANY
 }
 id = @{ sym_char+ }
 
@@ -38,7 +38,8 @@ apply = { "(" ~ expr* ~ ")" }
 args = { id* ~ "|" }
 block = { "(" ~ args ~ expr* ~ ")" }
 quote = { ":" ~ expr }
-expr = { prim | id | list | dict | block | apply | quote }
+unquote = { "\\" ~ expr }
+expr = { prim | id | list | dict | block | apply | quote | unquote }
 
 file = {
     SOI ~

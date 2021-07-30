@@ -22,7 +22,10 @@ pub fn eval(env: Node, expr: Node) -> Node {
         Node::Dict(_) => expr.clone(),
 
         // Quotes evaluate to their wrapped nodes.
-        Node::Quote(s) => (&*s.borrow()).clone(),
+        Node::Quote(s) => quote(env.clone(), (&*s.borrow()).clone()),
+
+        // Unquotes explicitly eval their nodes.
+        Node::Unquote(s) => eval(env.clone(), (&*s.borrow()).clone()),
 
         // Except blocks, which capture their environment.
         Node::Block(bref) => {
@@ -49,11 +52,11 @@ pub fn eval(env: Node, expr: Node) -> Node {
             }
         }
 
-        // Dictionary defs evaluate to dicts, with their keys and values evaluated.
+        // Associations evaluate to dicts, with their keys and values evaluated.
         // { expr expr ... } -> { [eval expr] : [eval expr] ... }
-        Node::DictDef(map_ref) => {
+        Node::Assoc(vec_ref) => {
             let mut map = HashMap::<String, Node>::new();
-            for (key_node, node) in &*map_ref.borrow() {
+            for (key_node, node) in &*vec_ref.borrow() {
                 let key = eval(env.clone(), key_node.clone());
                 if let Node::Id(s) = &key {
                     map.insert(s.clone(), eval(env.clone(), node.clone()));
@@ -84,6 +87,46 @@ pub fn eval(env: Node, expr: Node) -> Node {
 
         // Invoke native func.
         Node::Native(f) => f(env),
+    }
+}
+
+pub fn quote(env: Node, expr: Node) -> Node {
+    match &expr {
+        Node::List(vec_ref) => {
+            let vec = &*vec_ref.borrow();
+            Node::List(NodeRef::new(
+                vec.into_iter()
+                    .map(|node| quote(env.clone(), node.clone()))
+                    .collect(),
+            ))
+        }
+
+        Node::Assoc(vec_ref) => {
+            let vec = &*vec_ref.borrow();
+            Node::Assoc(NodeRef::new(
+                vec.into_iter()
+                    .map(|pair| {
+                        (
+                            quote(env.clone(), pair.0.clone()),
+                            quote(env.clone(), pair.1.clone()),
+                        )
+                    })
+                    .collect(),
+            ))
+        }
+
+        Node::Apply(vec_ref) => {
+            let vec = &*vec_ref.borrow();
+            Node::Apply(NodeRef::new(
+                vec.into_iter()
+                    .map(|node| quote(env.clone(), node.clone()))
+                    .collect(),
+            ))
+        }
+
+        Node::Unquote(node_ref) => eval(env.clone(), (&*node_ref.borrow()).clone()),
+
+        _ => expr.clone(),
     }
 }
 
@@ -141,7 +184,7 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
         Node::List(vec_ref) => {
             if exprs.len() == 1 {
                 // (list) -> list
-                return first.clone()
+                return first.clone();
             }
 
             if exprs.len() != 2 {

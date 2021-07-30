@@ -22,6 +22,8 @@ pub fn init_builtins(map: &mut HashMap<String, Node>) {
     map.insert("-".into(), builtin(vec_from!["x", "y"], native_sub));
     map.insert("/".into(), builtin(vec_from!["x", "y"], native_div));
 
+    map.insert("not".into(), builtin(vec_from!["x"], native_not));
+
     panic::set_hook(Box::new(|info| {
         // TODO: Something special to keep track of panic info to promote to catch blocks.
         println!("{:?}", info);
@@ -72,6 +74,14 @@ pub fn loc_num(env: &Node, name: &str) -> f64 {
     let node = loc(env, name);
     match &node {
         Node::Num(x) => *x,
+        _ => panic!(),
+    }
+}
+
+pub fn loc_bool(env: &Node, name: &str) -> bool {
+    let node = loc(env, name);
+    match &node {
+        Node::Bool(x) => *x,
         _ => panic!(),
     }
 }
@@ -203,3 +213,9 @@ fn native_div(env: Node) -> Node {
         None => Node::Num(1f64 / x),
     }
 }
+
+fn native_not(env: Node) -> Node {
+    let x = loc_bool(&env, "x");
+    Node::Bool(!x)
+}
+

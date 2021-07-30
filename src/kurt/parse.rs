@@ -28,7 +28,7 @@ pub fn parse(src: String) -> Node {
                     }
                     _ => unreachable!(),
                 });
-                Node::DictDef(NodeRef::new(vec))
+                Node::Assoc(NodeRef::new(vec))
             }
 
             Rule::block => {
@@ -50,7 +50,6 @@ pub fn parse(src: String) -> Node {
                 }))
             }
 
-            Rule::quote => Node::Quote(NodeRef::new(parse_value(expr.into_inner().next().unwrap()))),
             Rule::apply => Node::Apply(NodeRef::new(expr.into_inner().map(parse_value).collect())),
             Rule::list => Node::List(NodeRef::new(expr.into_inner().map(parse_value).collect())),
             Rule::number => Node::Num(expr.as_str().parse().unwrap()),
@@ -59,6 +58,9 @@ pub fn parse(src: String) -> Node {
             Rule::id => Node::Id(String::from(expr.as_str())),
             Rule::prim => parse_value(expr.into_inner().next().unwrap()),
             Rule::expr => parse_value(expr.into_inner().next().unwrap()),
+
+            Rule::quote => Node::Quote(NodeRef::new(parse_value(expr.into_inner().next().unwrap()))),
+            Rule::unquote => Node::Unquote(NodeRef::new(parse_value(expr.into_inner().next().unwrap()))),
 
             _ => unreachable!(),
         }
