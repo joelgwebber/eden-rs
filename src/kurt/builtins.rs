@@ -4,7 +4,7 @@ use velcro::vec_from;
 
 use crate::kurt::{eq::native_eq, Node};
 
-use super::{eval::apply, Block, NodeRef};
+use super::{NodeRef, eval::apply, node::Block};
 
 pub fn init_builtins(map: &mut HashMap<String, Node>) {
     map.insert("do".into(), builtin(vec_from!["exprs"], native_do));
@@ -33,8 +33,9 @@ pub fn init_builtins(map: &mut HashMap<String, Node>) {
 pub fn builtin(args: Vec<String>, f: fn(Node) -> Node) -> Node {
     Node::Block(NodeRef::new(Block {
         params: args,
-        env: Node::Nil,
         expr: Node::Native(f),
+        env: Node::Nil,
+        slf: Node::Nil,
     }))
 }
 
@@ -128,10 +129,10 @@ fn native_def(env: Node) -> Node {
         }
         _ => panic!("def requires a dict"),
     }
-    Node::Nil
+    env.clone()
 }
 
-fn native_set(env: Node) -> Node {
+pub fn native_set(env: Node) -> Node {
     let this = loc(&env, "@");
     let vals = loc(&env, "vals");
     match &vals {
@@ -140,9 +141,9 @@ fn native_set(env: Node) -> Node {
                 this.set(&k, v.clone());
             }
         }
-        _ => panic!("def requires a dict"),
+        _ => panic!("set requires a dict"),
     }
-    Node::Nil
+    env.clone()
 }
 
 fn native_log(env: Node) -> Node {
@@ -218,4 +219,3 @@ fn native_not(env: Node) -> Node {
     let x = loc_bool(&env, "x");
     Node::Bool(!x)
 }
-

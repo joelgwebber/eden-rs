@@ -98,7 +98,7 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
 
     let mut i = 0;
     for (name, node) in m {
-        write!(f, "{} ", name)?;
+        write!(f, ":{} ", name)?;
         match node {
             Node::Dict(_) => { f.write_str("{...}"); () }
             Node::List(_) => { f.write_str("[...]"); () }

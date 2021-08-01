@@ -1,8 +1,8 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::{Block, Node};
+use crate::kurt::Node;
 
-use super::NodeRef;
+use super::{NodeRef, node::Block};
 
 const DEBUG: bool = false;
 
@@ -34,8 +34,9 @@ pub fn eval(env: Node, expr: Node) -> Node {
                 // Grab the block's environment if one isn't already specified.
                 Node::Block(NodeRef::new(Block {
                     params: b.params.clone(),
-                    env: env.clone(),
                     expr: b.expr.clone(),
+                    env: env.clone(),
+                    slf: b.slf.clone(),
                 }))
             } else {
                 expr.clone()
@@ -158,6 +159,10 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
 
         // (dict ...) ->
         Node::Dict(map_ref) => {
+            if exprs.len() == 1 {
+                // (dict) -> dict
+                return first.clone();
+            }
             if exprs.len() != 2 {
                 panic!("dict can only be applied with a single expr")
             }
@@ -167,13 +172,27 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
                 // (dict block) -> apply block expr to dict
                 Node::Block(block_ref) => {
                     let block = &*block_ref.borrow();
-                    let params =
-                        new_frame(env.clone(), block.env.clone(), (*map_ref.borrow()).clone());
+                    let params = new_frame(&env, &block, &*map_ref.borrow());
                     eval(Node::Dict(NodeRef::new(params)), block.expr.clone())
                 }
 
-                // (dict sym) -> lookup item
-                Node::Id(id) => eval(first.clone(), Node::Id(id.clone())),
+                // (dict id) -> lookup item
+                Node::Id(id) => {
+                    let result = eval(first.clone(), Node::Id(id.clone()));
+                    match &result {
+                        Node::Block(blk_ref) => {
+                            // Capture self reference in block.
+                            let block = &*blk_ref.borrow();
+                            Node::Block(NodeRef::new(Block {
+                                params: block.params.clone(),
+                                env: block.env.clone(),
+                                expr: block.expr.clone(),
+                                slf: first.clone(),
+                            }))
+                        }
+                        _ => result,
+                    }
+                }
 
                 // (dict expr) -> eval expr in env
                 _ => eval(first.clone(), second.clone()),
@@ -186,7 +205,6 @@ pub fn apply(env: Node, exprs: Vec<Node>) -> Node {
                 // (list) -> list
                 return first.clone();
             }
-
             if exprs.len() != 2 {
                 panic!("lists can only be applied with a single expr")
             }
@@ -230,12 +248,16 @@ fn invoke(env: Node, block_node: Node, args: Vec<Node>) -> Node {
     }
 }
 
-fn new_frame(env: Node, sup: Node, map: HashMap<String, Node>) -> HashMap<String, Node> {
+fn new_frame(env: &Node, blk: &Block, map: &HashMap<String, Node>) -> HashMap<String, Node> {
     let mut new_map = HashMap::<String, Node>::new();
     for (key, node) in map {
         new_map.insert(key.clone(), node.clone());
     }
-    new_map.insert("@".to_string(), env.clone());
-    new_map.insert("^".to_string(), sup.clone());
+    if blk.slf != Node::Nil {
+        new_map.insert("@".to_string(), blk.slf.clone());
+    } else {
+        new_map.insert("@".to_string(), env.clone());
+    }
+    new_map.insert("^".to_string(), blk.env.clone());
     new_map
 }

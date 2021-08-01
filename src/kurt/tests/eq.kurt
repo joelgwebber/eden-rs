@@ -1,4 +1,6 @@
 (do [
     (expect true (= 42 42))
     -- TODO: The rest...
+    -- Equality cases with super refs
+    -- Ref equality
 ])

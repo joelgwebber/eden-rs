@@ -1,4 +1,5 @@
 (do [
+    -- Object with fields.
     (def {
         :obj {
             :foo 42
@@ -7,4 +8,49 @@
     })
     (expect 42 (obj :foo))
     (expect 54 (obj :bar))
+    --((obj :set) {:foo 44})
+    --(expect 44 (obj :foo))
+
+    -- Object with method + self reference.
+    (def {
+        :Thing {
+            :new (val | {
+                :^ Thing
+                :val val
+            })
+            :meth (| @ :val)
+        }
+    })
+    (def {
+        :thing ((Thing :new) 42)
+    })
+    (expect 42 ((thing :meth)))
+
+    -- Super/sub relationships.
+    -(def {
+        :Super {
+            :new (| {
+                :^ Super
+                :a 42
+            })
+        }
+    })
+    (def {
+        :Sub {
+            :^ Super
+            :new (|
+                ((((Super :new)) :set) {
+                    :^ Sub
+                    :b 54
+                })
+            )
+        }
+    })
+    (def { :sub ((Sub :new)) })
+    (expect 42 (sub :a))
+    (expect 54 (sub :b))-
+
+    -[ TODO
+       - Explicit struct parent.
+    ]-
 ])

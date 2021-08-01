@@ -1,9 +1,9 @@
 use pest::iterators::Pair;
 use pest::Parser;
 
-use crate::kurt::Block;
 use crate::kurt::Node;
 use crate::kurt::NodeRef;
+use crate::kurt::node::Block;
 
 #[derive(Parser)]
 #[grammar = "kurt/kurt.pest"]
@@ -45,8 +45,9 @@ pub fn parse(src: String) -> Node {
                 let exprs = rules.map(parse_value).collect();
                 Node::Block(NodeRef::new(Block {
                     params: params,
-                    env: Node::Nil,
                     expr: Node::Apply(NodeRef::new(exprs)),
+                    env: Node::Nil,
+                    slf: Node::Nil,
                 }))
             }
 
