@@ -5,7 +5,6 @@ mod tests {
     use velcro::vec_from;
 
     use crate::kurt::{
-        builtins::{builtin, loc},
         eq::node_eq,
         Kurt, Node,
     };
@@ -19,6 +18,8 @@ mod tests {
                 (| expect true true)
                 (| expect 42 42)
                 (| expect "foo" "foo")
+                (| expect [1 2 3] [1 2 3])
+                (| expect {:foo 42 :bar 54} {:foo 42 :bar 54})
             ])
         "#,
         );
@@ -71,16 +72,13 @@ mod tests {
     fn kurt_test(name: &str, src: &str) {
         println!("-- {}", name);
         let mut kurt = Kurt::new();
-        kurt.def(
-            "expect".into(),
-            builtin(vec_from!["expect", "expr"], native_expect),
-        );
+        kurt.add_builtin("expect", &vec_from!["expect", "expr"], native_expect);
         kurt.eval_src(src.into());
     }
 
-    fn native_expect(env: Node) -> Node {
-        let expect = loc(&env, "expect");
-        let expr = loc(&env, "expr");
+    fn native_expect(kurt: &Kurt, env: &Node) -> Node {
+        let expect = kurt.loc(env, "expect");
+        let expr = kurt.loc(env, "expr");
         if !node_eq(expect.clone(), expr.clone()) {
             assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
         }

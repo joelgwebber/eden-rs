@@ -9,7 +9,7 @@
     -- def, set, get.
     (def { :foo 42 })
     (expect 42 foo)
-    (set { :foo 54})
+    (set :foo 54)
     (expect 54 foo)
 
     -- dynamic dict keys

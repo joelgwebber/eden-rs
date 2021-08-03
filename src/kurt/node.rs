@@ -21,7 +21,7 @@ pub enum Node {
     Bool(bool),
     Str(String),
     Id(String),
-    Native(fn(Node) -> Node),
+    Native(&'static str),
 
     List(NodeRef<Vec<Node>>),
     Assoc(NodeRef<Vec<(Node, Node)>>),
@@ -33,9 +33,11 @@ pub enum Node {
     Unquote(NodeRef<Node>),
 }
 
+// Needed for the use of nodes in the panic handler.
 impl UnwindSafe for Node {}
 impl RefUnwindSafe for Node {}
 
+// State for a (| block) node, including params and environment.
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Block {
     pub params: Vec<String>,
@@ -44,6 +46,7 @@ pub struct Block {
     pub slf: Node,
 }
 
+// Utilities to simplify borrowing through NodeRefs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BorrowError;
 impl Error for BorrowError {}
@@ -92,6 +95,7 @@ impl<T: Trace> NodeRef<T> {
     }
 }
 
+// Make NodeRefs cloneable, so that Node can be cloneable.
 impl<T: Trace> Clone for NodeRef<T> {
     #[inline]
     fn clone(&self) -> Self {
@@ -99,6 +103,8 @@ impl<T: Trace> Clone for NodeRef<T> {
     }
 }
 
+// Make nodes cloneable. Value-types are trivially cloned by value; ref-types only clone their refs.
+// Cloning a node is always a cheap operation.
 impl Clone for Node {
     fn clone(&self) -> Self {
         match self {

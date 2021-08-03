@@ -9,7 +9,7 @@ impl fmt::Display for Node {
             Node::Str(n) => write!(f, "{}", n),
             Node::Bool(n) => write!(f, "{}", n),
             Node::Id(n) => write!(f, "{}", n),
-            Node::Native(_) => write!(f, "<native>"),
+            Node::Native(n) => write!(f, "<native {}>", n),
 
             Node::Apply(vec_ref) => {
                 write!(f, "(")?;
@@ -81,8 +81,8 @@ fn write_pairs(f: &mut fmt::Formatter, m: &Vec<(Node, Node)>) -> fmt::Result {
     for (key, node) in m {
         write!(f, "{} ", key)?;
         match node {
-            Node::Dict(_) => { f.write_str("{...}"); () }
-            Node::List(_) => { f.write_str("[...]"); () }
+            // Node::Dict(_) => { f.write_str("{...}"); () }
+            // Node::List(_) => { f.write_str("[...]"); () }
             _ => node.fmt(f)?,
         }
         if i < m.len() - 1 {
@@ -100,8 +100,8 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Node>) -> fmt::Result {
     for (name, node) in m {
         write!(f, ":{} ", name)?;
         match node {
-            Node::Dict(_) => { f.write_str("{...}"); () }
-            Node::List(_) => { f.write_str("[...]"); () }
+            // Node::Dict(_) => { f.write_str("{...}"); () }
+            // Node::List(_) => { f.write_str("[...]"); () }
             _ => node.fmt(f)?,
         }
         if i < m.len() - 1 {

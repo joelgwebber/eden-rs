@@ -1,10 +1,12 @@
-use super::{builtins::loc, Node};
+use super::{Kurt, Node};
 
-pub fn native_eq(env: Node) -> Node {
-    let _a = loc(&env, "x");
-    let _b = loc(&env, "y");
+impl Kurt {
+    pub fn native_eq(&self, env: &Node) -> Node {
+        let _a = self.loc(env, "x");
+        let _b = self.loc(env, "y");
 
-    Node::Bool(node_eq(_a, _b))
+        Node::Bool(node_eq(_a, _b))
+    }
 }
 
 pub fn node_eq(_a: Node, _b: Node) -> bool {

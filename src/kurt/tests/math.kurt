@@ -3,7 +3,7 @@
     (expect 44 (+ [42 2]))
     (expect 46 (+ [42 2 2]))
 
-    -- sub
+    -- -- sub
     (expect 40 (- 42 2))
     (expect -42 (- 42))
 
