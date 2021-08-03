@@ -34,4 +34,10 @@
     -- (expect "baz" list:2)    -- TODO: shorthand access
 
     -- TODO: cross-referenced keys/vals in a single (def)
+
+    (def { :outer 54 })
+    (let
+        { :foo 42 }
+        (| expect 96 (+ [foo outer])
+    )
 ])

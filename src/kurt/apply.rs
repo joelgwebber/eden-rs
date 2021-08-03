@@ -29,7 +29,7 @@ impl Kurt {
         }
 
         let first = &self.eval(env, exprs.first().unwrap());
-        let result = match first {
+        match first {
             // (block expr*) -> positional arg invocation
             Node::Block(_) => self.invoke(env, first.clone(), exprs[1..].to_vec()),
 
@@ -57,12 +57,7 @@ impl Kurt {
                 };
                 self.maybe_wrap(first.clone(), result)
             }
-        };
-
-        if self.debug {
-            println!("  => {}", result.borrow());
         }
-        result
     }
 
     fn maybe_wrap(&self, slf: Node, result: Node) -> Node {

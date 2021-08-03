@@ -11,6 +11,7 @@ impl Kurt {
         // Built-in functions.
         self.add_builtin("do", &vec_from!["exprs"], Kurt::native_do);
         self.add_builtin("def", &vec_from!["vals"], Kurt::native_def);
+        self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
 
         self.add_builtin("set".into(), &vec_from!["name", "value"], Kurt::native_set);
         self.add_builtin("log".into(), &vec_from!["msg"], Kurt::native_log);
@@ -112,20 +113,13 @@ impl Kurt {
         }
     }
 
-    fn maybe_apply(&self, env: &Node, expr: Node) -> Node {
-        match expr {
-            Node::Block(_) => return self.apply(&env, vec![expr.clone()]),
-            _ => return expr.clone(),
-        }
-    }
-
     fn native_do(&self, env: &Node) -> Node {
         let exprs = self.loc(&env, "exprs");
         match &exprs {
             Node::List(vec_ref) => {
                 let mut last = Node::Nil;
                 for expr in &*vec_ref.borrow() {
-                    last = self.maybe_apply(env, expr.clone());
+                    last = self.apply(&env, vec![expr.clone()])
                 }
                 last
             }
@@ -145,6 +139,12 @@ impl Kurt {
             _ => panic!("def requires a dict"),
         }
         env.clone()
+    }
+
+    fn native_let(&self, env: &Node) -> Node {
+        let vars = self.loc(&env, "vars");
+        let expr = self.loc(&env, "expr");
+        self.apply(env, vec![vars, expr])
     }
 
     pub fn native_set(&self, env: &Node) -> Node {

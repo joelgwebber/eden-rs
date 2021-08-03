@@ -12,7 +12,7 @@ impl Kurt {
             println!("eval :: {}", expr);
         }
 
-        let result = match expr {
+        match expr {
             // Value types are resolved within their environment.
             Node::Nil => self.get(env, expr),
             Node::Bool(_) => self.get(env, expr),
@@ -82,13 +82,7 @@ impl Kurt {
                 Some(f) => f(self, env.borrow()),
                 _ => panic!("unimplemented builtin '{}'", name),
             },
-        };
-
-        if self.debug {
-            // println!("eval -- {} :: {}", env.borrow(), expr.borrow());
-            println!("  -> {}", result.borrow());
         }
-        result
     }
 
     pub fn quote(&self, env: &Node, expr: &Node) -> Node {
