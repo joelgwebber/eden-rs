@@ -1,5 +1,5 @@
 (do [
-    (def {:caught false})
+    (def :caught false)
     (try
         (| not-a-thing)
         (| set :caught true)

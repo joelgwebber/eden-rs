@@ -26,19 +26,6 @@ mod tests {
     }
 
     #[test]
-    fn test_let() {
-        kurt_test(
-            "inline test",
-            r#"
-            (let
-                { :foo 42 }
-                (| expect 42 foo)
-            )
-        "#,
-        );
-    }
-
-    #[test]
     fn basic() {
         kurt_test_file("src/kurt/tests/basic.kurt");
     }

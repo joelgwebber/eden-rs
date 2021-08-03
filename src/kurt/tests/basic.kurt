@@ -7,27 +7,31 @@
     (expect {:foo 42 :bar 54} {:foo 42 :bar 54})
 
     -- def, set, get.
-    (def { :foo 42 })
+    (let { :foo 42 }
+        (| do [
+            (expect 42 foo)
+            (set :foo 54)
+            (expect 54 foo)
+        ])
+    )
+
+    (def :foo 42)
     (expect 42 foo)
     (set :foo 54)
     (expect 54 foo)
 
     -- dynamic dict keys
-    (def {
-        :dyn-sym :foo
-        :get-sym (| :bar)
-    })
-    (def {
-        :things {
-            dyn-sym "foo"
-            (get-sym) "bar"
-        }
+    (def :dyn-sym :foo)
+    (def :get-sym (| :bar))
+    (def :things {
+        dyn-sym "foo"
+        (get-sym) "bar"
     })
     (expect "foo" (things :foo))
     (expect "bar" (things :bar))
     -- (expect "bar" things:bar)    -- TODO: shorthand access
 
-    (def { :list ["foo" "bar" "baz"]})
+    (def :list ["foo" "bar" "baz"])
     (expect "foo" (list 0))
     (expect "bar" (list 1))
     (expect "baz" (list 2))
@@ -35,9 +39,9 @@
 
     -- TODO: cross-referenced keys/vals in a single (def)
 
-    (def { :outer 54 })
+    (def :outer 54)
     (let
         { :foo 42 }
-        (| expect 96 (+ [foo outer])
+        (| expect 96 (+ [foo outer]))
     )
 ])

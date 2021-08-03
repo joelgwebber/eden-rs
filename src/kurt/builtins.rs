@@ -10,7 +10,7 @@ impl Kurt {
     pub fn init_builtins(&mut self) {
         // Built-in functions.
         self.add_builtin("do", &vec_from!["exprs"], Kurt::native_do);
-        self.add_builtin("def", &vec_from!["vals"], Kurt::native_def);
+        self.add_builtin("def", &vec_from!["name", "value"], Kurt::native_def);
         self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
 
         self.add_builtin("set".into(), &vec_from!["name", "value"], Kurt::native_set);
@@ -28,7 +28,7 @@ impl Kurt {
         // Default implementation dicts.
         self.def_dict = Node::Dict(NodeRef::new(hash_map! {
             "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
-            "def".into(): Kurt::builtin("def".into(), &vec_from!["vals"]),
+            "def".into(): Kurt::builtin("def".into(), &vec_from!["name", "value"]),
         }));
         self.def_list = Node::Dict(NodeRef::new(hash_map! {
             "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
@@ -127,24 +127,18 @@ impl Kurt {
         }
     }
 
-    fn native_def(&self, env: &Node) -> Node {
-        let this = self.loc(&env, "@");
-        let vals = self.loc(&env, "vals");
-        match &vals {
-            Node::Dict(vals_map_ref) => {
-                for (k, v) in &*vals_map_ref.borrow() {
-                    self.def(&this, &Node::Id(k.clone()), &v);
-                }
-            }
-            _ => panic!("def requires a dict"),
-        }
-        env.clone()
-    }
-
     fn native_let(&self, env: &Node) -> Node {
         let vars = self.loc(&env, "vars");
         let expr = self.loc(&env, "expr");
         self.apply(env, vec![vars, expr])
+    }
+
+    fn native_def(&self, env: &Node) -> Node {
+        let this = self.loc(&env, "@");
+        let name = self.loc(&env, "name");
+        let value = self.loc(&env, "value");
+        self.def(&this, &name, &value);
+        Node::Nil
     }
 
     pub fn native_set(&self, env: &Node) -> Node {

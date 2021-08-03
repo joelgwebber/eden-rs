@@ -1,7 +1,5 @@
 (do [
-    (def {
-        :infix (l | ((l 1) [(l 0) (l 2)]))
-    })
+    (def :infix (l | ((l 1) [(l 0) (l 2)])))
     (expect 42 ((infix [40 + 2])))
 
     (expect :(a 42) :(a \(+ [40 2])))
