@@ -7,40 +7,40 @@ use std::{
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Expr::Nil => write!(f, "nil"),
-            Expr::Num(n) => write!(f, "{}", n),
-            Expr::Str(n) => write!(f, "{}", n),
-            Expr::Bool(n) => write!(f, "{}", n),
-            Expr::Id(n) => write!(f, "{}", n),
-            Expr::Native(n) => write!(f, "<native {}>", n),
+            Expr::ENil => write!(f, "nil"),
+            Expr::ENum(n) => write!(f, "{}", n),
+            Expr::EStr(n) => write!(f, "{}", n),
+            Expr::EBool(n) => write!(f, "{}", n),
+            Expr::EId(n) => write!(f, "{}", n),
+            Expr::ENative(n) => write!(f, "<native {}>", n),
 
-            Expr::Apply(vec_ref) => {
+            Expr::EApply(apply_ref) => {
                 write!(f, "(")?;
-                write_vec(f, &*vec_ref.borrow())?;
+                write_vec(f, &(apply_ref.borrow()).exprs)?;
                 write!(f, ")")
             }
 
-            Expr::List(vec_ref) => {
+            Expr::EList(list_ref) => {
                 write!(f, "[")?;
-                write_vec(f, &*vec_ref.borrow())?;
+                write_vec(f, &(list_ref.borrow()).exprs)?;
                 write!(f, "]")
             }
 
-            Expr::Assoc(map_ref) => {
+            Expr::EAssoc(map_ref) => {
                 write!(f, "{{")?;
-                write_pairs(f, &*map_ref.borrow())?;
+                write_pairs(f, &map_ref.borrow().pairs)?;
                 write!(f, "}}")?;
                 Ok(())
             }
 
-            Expr::Dict(map_ref) => {
+            Expr::EDict(map_ref) => {
                 write!(f, "{{")?;
-                write_map(f, &*map_ref.borrow())?;
+                write_map(f, &map_ref.borrow().map)?;
                 write!(f, "}}")?;
                 Ok(())
             }
 
-            Expr::Block(block_ref) => {
+            Expr::EBlock(block_ref) => {
                 let block = &*block_ref.borrow();
                 // TODO: env?
                 write!(f, "(")?;
@@ -50,12 +50,12 @@ impl fmt::Display for Expr {
                 write!(f, ")")
             }
 
-            Expr::Quote(eref) => {
+            Expr::EQuote(eref) => {
                 let expr = &*eref.borrow();
                 write!(f, ":{}", expr)
             }
 
-            Expr::Unquote(eref) => {
+            Expr::EUnquote(eref) => {
                 let expr = &*eref.borrow();
                 write!(f, "\\{}", expr)
             }

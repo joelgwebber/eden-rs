@@ -1,9 +1,12 @@
 use pest::iterators::Pair;
 use pest::Parser;
 
+use crate::kurt::expr::Apply;
+use crate::kurt::expr::Assoc;
 use crate::kurt::expr::Block;
-use crate::kurt::Expr;
+use crate::kurt::expr::List;
 use crate::kurt::ERef;
+use crate::kurt::Expr;
 
 use super::Kurt;
 
@@ -31,7 +34,7 @@ impl Kurt {
                         }
                         _ => unreachable!(),
                     });
-                    Expr::Assoc(ERef::new(vec))
+                    Expr::EAssoc(ERef::new(Assoc { pairs: vec }))
                 }
 
                 Rule::block => {
@@ -46,32 +49,34 @@ impl Kurt {
                         })
                         .collect();
                     let exprs = rules.map(parse_value).collect();
-                    Expr::Block(ERef::new(Block {
+                    Expr::EBlock(ERef::new(Block {
                         params: params,
-                        expr: Expr::Apply(ERef::new(exprs)),
-                        env: Expr::Nil,
-                        slf: Expr::Nil,
+                        expr: Expr::EApply(ERef::new(Apply { exprs: exprs })),
+                        env: Expr::ENil,
+                        slf: Expr::ENil,
                     }))
                 }
 
-                Rule::apply => {
-                    Expr::Apply(ERef::new(expr.into_inner().map(parse_value).collect()))
-                }
-                Rule::list => {
-                    Expr::List(ERef::new(expr.into_inner().map(parse_value).collect()))
-                }
-                Rule::number => Expr::Num(expr.as_str().parse().unwrap()),
-                Rule::boolean => Expr::Bool(expr.as_str().parse().unwrap()),
-                Rule::string => Expr::Str(String::from(expr.as_str())),
-                Rule::id => Expr::Id(String::from(expr.as_str())),
+                Rule::apply => Expr::EApply(ERef::new(Apply {
+                    exprs: expr.into_inner().map(parse_value).collect(),
+                })),
+
+                Rule::list => Expr::EList(ERef::new(List {
+                    exprs: expr.into_inner().map(parse_value).collect(),
+                })),
+
+                Rule::number => Expr::ENum(expr.as_str().parse().unwrap()),
+                Rule::boolean => Expr::EBool(expr.as_str().parse().unwrap()),
+                Rule::string => Expr::EStr(String::from(expr.as_str())),
+                Rule::id => Expr::EId(String::from(expr.as_str())),
                 Rule::prim => parse_value(expr.into_inner().next().unwrap()),
                 Rule::expr => parse_value(expr.into_inner().next().unwrap()),
 
                 Rule::quote => {
-                    Expr::Quote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
+                    Expr::EQuote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
                 }
                 Rule::unquote => {
-                    Expr::Unquote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
+                    Expr::EUnquote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
                 }
 
                 _ => unreachable!(),

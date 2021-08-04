@@ -5,57 +5,57 @@ impl Kurt {
         let _a = self.loc(env, "x");
         let _b = self.loc(env, "y");
 
-        Expr::Bool(expr_eq(_a, _b))
+        Expr::EBool(expr_eq(_a, _b))
     }
 }
 
 pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
     match &_a {
-        Expr::Nil => {
-            if let Expr::Nil = &_b {
+        Expr::ENil => {
+            if let Expr::ENil = &_b {
                 true
             } else {
                 false
             }
         }
-        Expr::Bool(a) => {
-            if let Expr::Bool(b) = &_b {
+        Expr::EBool(a) => {
+            if let Expr::EBool(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Expr::Num(a) => {
-            if let Expr::Num(b) = &_b {
+        Expr::ENum(a) => {
+            if let Expr::ENum(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Expr::Str(a) => {
-            if let Expr::Str(b) = &_b {
+        Expr::EStr(a) => {
+            if let Expr::EStr(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Expr::Id(a) => {
-            if let Expr::Id(b) = &_b {
+        Expr::EId(a) => {
+            if let Expr::EId(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
 
-        Expr::List(a_ref) => {
-            if let Expr::List(b_ref) = &_b {
-                let a_vec = &*a_ref.borrow();
-                let b_vec = &*b_ref.borrow();
+        Expr::EList(a_ref) => {
+            if let Expr::EList(b_ref) = &_b {
+                let a_exprs = &a_ref.borrow().exprs;
+                let b_exprs = &b_ref.borrow().exprs;
                 let mut eq = false;
-                if a_vec.len() == b_vec.len() {
+                if a_exprs.len() == b_exprs.len() {
                     eq = true;
-                    for i in 0..a_vec.len() {
-                        if !expr_eq(a_vec[i].clone(), b_vec[i].clone()) {
+                    for i in 0..a_exprs.len() {
+                        if !expr_eq(a_exprs[i].clone(), b_exprs[i].clone()) {
                             eq = false;
                             break;
                         }
@@ -67,19 +67,19 @@ pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
             }
         }
 
-        Expr::Assoc(a_ref) => {
-            if let Expr::Assoc(b_ref) = &_b {
-                let a_vec = &*a_ref.borrow();
-                let b_vec = &*b_ref.borrow();
+        Expr::EAssoc(a_ref) => {
+            if let Expr::EAssoc(b_ref) = &_b {
+                let a_pairs = &a_ref.borrow().pairs;
+                let b_pairs = &b_ref.borrow().pairs;
                 let mut eq = false;
-                if a_vec.len() == b_vec.len() {
+                if a_pairs.len() == b_pairs.len() {
                     eq = true;
-                    for i in 0..a_vec.len() {
-                        if !expr_eq(a_vec[i].0.clone(), b_vec[i].0.clone()) {
+                    for i in 0..a_pairs.len() {
+                        if !expr_eq(a_pairs[i].0.clone(), b_pairs[i].0.clone()) {
                             eq = false;
                             break;
                         }
-                        if !expr_eq(a_vec[i].1.clone(), b_vec[i].1.clone()) {
+                        if !expr_eq(a_pairs[i].1.clone(), b_pairs[i].1.clone()) {
                             eq = false;
                             break;
                         }
@@ -91,10 +91,10 @@ pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
             }
         }
 
-        Expr::Dict(a_ref) => {
-            if let Expr::Dict(b_ref) = &_b {
-                let a_map = &*a_ref.borrow();
-                let b_map = &*b_ref.borrow();
+        Expr::EDict(a_ref) => {
+            if let Expr::EDict(b_ref) = &_b {
+                let a_map = &a_ref.borrow().map;
+                let b_map = &b_ref.borrow().map;
                 let mut eq = false;
                 if a_map.len() == b_map.len() {
                     eq = true;
@@ -112,15 +112,15 @@ pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
         }
 
         // TODO: Merge with List.
-        Expr::Apply(a_ref) => {
-            if let Expr::Apply(b_ref) = &_b {
-                let a_vec = &*a_ref.borrow();
-                let b_vec = &*b_ref.borrow();
+        Expr::EApply(a_ref) => {
+            if let Expr::EApply(b_ref) = &_b {
+                let a_exprs = &a_ref.borrow().exprs;
+                let b_exprs = &b_ref.borrow().exprs;
                 let mut eq = false;
-                if a_vec.len() == b_vec.len() {
+                if a_exprs.len() == b_exprs.len() {
                     eq = true;
-                    for i in 0..a_vec.len() {
-                        if !expr_eq(a_vec[i].clone(), b_vec[i].clone()) {
+                    for i in 0..a_exprs.len() {
+                        if !expr_eq(a_exprs[i].clone(), b_exprs[i].clone()) {
                             eq = false;
                             break;
                         }
@@ -132,8 +132,8 @@ pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
             }
         }
 
-        Expr::Quote(a) => {
-            if let Expr::Quote(b) = &_b {
+        Expr::EQuote(a) => {
+            if let Expr::EQuote(b) = &_b {
                 expr_eq((&*a.borrow()).clone(), (&*b.borrow()).clone())
             } else {
                 false

@@ -82,6 +82,6 @@ mod tests {
         if !expr_eq(expect.clone(), expr.clone()) {
             assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
         }
-        Expr::Nil
+        Expr::ENil
     }
 }

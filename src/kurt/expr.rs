@@ -16,26 +16,46 @@ use gc::Trace;
 // Parsing produces an expr graph, and evaluation updates that graph.
 #[derive(Trace, Finalize, PartialEq)]
 pub enum Expr {
-    Nil,
-    Num(f64),
-    Bool(bool),
-    Str(String),
-    Id(String),
-    Native(&'static str),
+    ENil,
+    ENum(f64),
+    EBool(bool),
+    EStr(String),
+    EId(String),
+    ENative(&'static str),
 
-    List(ERef<Vec<Expr>>),
-    Assoc(ERef<Vec<(Expr, Expr)>>),
-    Dict(ERef<HashMap<String, Expr>>),
-    Block(ERef<Block>),
-    Apply(ERef<Vec<Expr>>),
+    EQuote(ERef<Expr>),
+    EUnquote(ERef<Expr>),
 
-    Quote(ERef<Expr>),
-    Unquote(ERef<Expr>),
+    EList(ERef<List>),
+    EAssoc(ERef<Assoc>),
+    EDict(ERef<Dict>),
+    EBlock(ERef<Block>),
+    EApply(ERef<Apply>),
 }
 
 // Needed for the use of expressions in the panic handler.
 impl UnwindSafe for Expr {}
 impl RefUnwindSafe for Expr {}
+
+#[derive(Trace, Finalize, PartialEq)]
+pub struct Assoc {
+    pub pairs: Vec<(Expr, Expr)>,
+}
+
+#[derive(Trace, Finalize, PartialEq)]
+pub struct Dict {
+    pub map: HashMap<String, Expr>,
+}
+
+#[derive(Trace, Finalize, PartialEq)]
+pub struct List {
+    pub exprs: Vec<Expr>,
+}
+
+#[derive(Trace, Finalize, PartialEq)]
+pub struct Apply {
+    pub exprs: Vec<Expr>,
+}
 
 // State for a (| block) expr, including params and environment.
 #[derive(Trace, Finalize, PartialEq)]
@@ -108,19 +128,19 @@ impl<T: Trace> Clone for ERef<T> {
 impl Clone for Expr {
     fn clone(&self) -> Self {
         match self {
-            Expr::Nil => Expr::Nil,
-            Expr::Num(x) => Expr::Num(*x),
-            Expr::Bool(x) => Expr::Bool(*x),
-            Expr::Str(x) => Expr::Str(x.clone()),
-            Expr::Id(x) => Expr::Id(x.clone()),
-            Expr::Native(x) => Expr::Native(*x),
-            Expr::List(r) => Expr::List(r.clone()),
-            Expr::Assoc(r) => Expr::Assoc(r.clone()),
-            Expr::Dict(r) => Expr::Dict(r.clone()),
-            Expr::Block(r) => Expr::Block(r.clone()),
-            Expr::Apply(r) => Expr::Apply(r.clone()),
-            Expr::Quote(r) => Expr::Quote(r.clone()),
-            Expr::Unquote(r) => Expr::Unquote(r.clone()),
+            Expr::ENil => Expr::ENil,
+            Expr::ENum(x) => Expr::ENum(*x),
+            Expr::EBool(x) => Expr::EBool(*x),
+            Expr::EStr(x) => Expr::EStr(x.clone()),
+            Expr::EId(x) => Expr::EId(x.clone()),
+            Expr::ENative(x) => Expr::ENative(*x),
+            Expr::EList(r) => Expr::EList(r.clone()),
+            Expr::EAssoc(r) => Expr::EAssoc(r.clone()),
+            Expr::EDict(r) => Expr::EDict(r.clone()),
+            Expr::EBlock(r) => Expr::EBlock(r.clone()),
+            Expr::EApply(r) => Expr::EApply(r.clone()),
+            Expr::EQuote(r) => Expr::EQuote(r.clone()),
+            Expr::EUnquote(r) => Expr::EUnquote(r.clone()),
         }
     }
 }
