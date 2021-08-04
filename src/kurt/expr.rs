@@ -39,27 +39,32 @@ impl RefUnwindSafe for Expr {}
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Assoc {
+    pub pos: (usize, usize),
     pub pairs: Vec<(Expr, Expr)>,
 }
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Dict {
+    pub pos: (usize, usize),
     pub map: HashMap<String, Expr>,
 }
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct List {
+    pub pos: (usize, usize),
     pub exprs: Vec<Expr>,
 }
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Apply {
+    pub pos: (usize, usize),
     pub exprs: Vec<Expr>,
 }
 
 // State for a (| block) expr, including params and environment.
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Block {
+    pub pos: (usize, usize),
     pub params: Vec<String>,
     pub expr: Expr,
     pub env: Expr,

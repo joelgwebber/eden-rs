@@ -25,6 +25,7 @@ impl Kurt {
         let mut kurt = Kurt {
             builtins: HashMap::new(),
             root: Expr::EDict(ERef::new(Dict {
+                pos: (0, 0),
                 map: HashMap::new(),
             })),
             def_dict: Expr::ENil,

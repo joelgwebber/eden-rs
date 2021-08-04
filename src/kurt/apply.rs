@@ -19,6 +19,7 @@ impl Kurt {
     pub fn apply(&self, env: &Expr, exprs: Vec<Expr>) -> Expr {
         if self.debug {
             let ls = Expr::EList(ERef::new(List {
+                pos: (0, 0),
                 exprs: exprs.clone(),
             }));
             // println!("apply -- {} :: {}", env.clone(), ls);
@@ -68,6 +69,7 @@ impl Kurt {
                 // Capture self reference in block.
                 let block = &*blk_ref.borrow();
                 Expr::EBlock(ERef::new(Block {
+                    pos: block.pos,
                     params: block.params.clone(),
                     env: block.env.clone(),
                     expr: block.expr.clone(),
@@ -81,6 +83,7 @@ impl Kurt {
     fn invoke(&self, env: &Expr, block_expr: Expr, args: Vec<Expr>) -> Expr {
         if self.debug {
             let ls = Expr::EList(ERef::new(List {
+                pos: (0, 0),
                 exprs: args.clone(),
             }));
             // println!("invoke -- {} :: {}", env.clone(), ls);
@@ -94,7 +97,10 @@ impl Kurt {
             for i in 0..args.len() {
                 frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
             }
-            let nf = Expr::EDict(ERef::new(Dict { map: frame }));
+            let nf = Expr::EDict(ERef::new(Dict {
+                pos: (0, 0),
+                map: frame,
+            }));
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
             panic!("tried to invoke with non-block expr {}", block_expr)
@@ -114,9 +120,9 @@ impl Kurt {
                 blk.slf.clone()
             } else {
                 env.clone()
-            },
+            }
         );
         new_map.insert("^".to_string(), blk.env.clone());
-        Expr::EDict(ERef::new(Dict { map: new_map }))
+        Expr::EDict(ERef::new(Dict { pos: (0, 0), map: new_map }))
     }
 }

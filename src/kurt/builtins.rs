@@ -27,12 +27,14 @@ impl Kurt {
 
         // Default implementation dicts.
         self.def_dict = Expr::EDict(ERef::new(Dict {
+            pos: (0, 0),
             map: hash_map! {
                 "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
                 "def".into(): Kurt::builtin("def".into(), &vec_from!["name", "value"]),
             },
         }));
         self.def_list = Expr::EDict(ERef::new(Dict {
+            pos: (0, 0),
             map: hash_map! {
                 "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
             },
@@ -47,6 +49,7 @@ impl Kurt {
 
     pub fn builtin(name: &'static str, args: &Vec<String>) -> Expr {
         Expr::EBlock(ERef::new(Block {
+            pos: (0, 0),
             params: args.clone(),
             expr: Expr::ENative(name),
             env: Expr::ENil,

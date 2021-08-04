@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use pest::iterators::Pair;
 use pest::Parser;
 
@@ -22,6 +24,7 @@ impl Kurt {
             .unwrap();
 
         fn parse_value(expr: Pair<Rule>) -> Expr {
+            let span = expr.as_span();
             match expr.as_rule() {
                 Rule::dict => {
                     let mut vec = Vec::<(Expr, Expr)>::new();
@@ -34,7 +37,10 @@ impl Kurt {
                         }
                         _ => unreachable!(),
                     });
-                    Expr::EAssoc(ERef::new(Assoc { pairs: vec }))
+                    Expr::EAssoc(ERef::new(Assoc {
+                        pos: span.start_pos().line_col(),
+                        pairs: vec,
+                    }))
                 }
 
                 Rule::block => {
@@ -50,18 +56,24 @@ impl Kurt {
                         .collect();
                     let exprs = rules.map(parse_value).collect();
                     Expr::EBlock(ERef::new(Block {
+                        pos: span.start_pos().line_col(),
                         params: params,
-                        expr: Expr::EApply(ERef::new(Apply { exprs: exprs })),
+                        expr: Expr::EApply(ERef::new(Apply {
+                            pos: span.start_pos().line_col(),
+                            exprs: exprs,
+                        })),
                         env: Expr::ENil,
                         slf: Expr::ENil,
                     }))
                 }
 
                 Rule::apply => Expr::EApply(ERef::new(Apply {
+                    pos: span.start_pos().line_col(),
                     exprs: expr.into_inner().map(parse_value).collect(),
                 })),
 
                 Rule::list => Expr::EList(ERef::new(List {
+                    pos: span.start_pos().line_col(),
                     exprs: expr.into_inner().map(parse_value).collect(),
                 })),
 

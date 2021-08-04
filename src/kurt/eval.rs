@@ -38,6 +38,7 @@ impl Kurt {
                 if b.env == Expr::ENil {
                     // Grab the block's environment if one isn't already specified.
                     Expr::EBlock(ERef::new(Block {
+                        pos: b.pos,
                         params: b.params.clone(),
                         expr: b.expr.clone(),
                         env: env.clone(),
@@ -52,25 +53,31 @@ impl Kurt {
             // { expr expr ... } -> { [eval expr] : [eval expr] ... }
             Expr::EAssoc(assoc_ref) => {
                 let mut map = HashMap::<String, Expr>::new();
-                for (key_expr, expr) in &assoc_ref.borrow().pairs {
-                    let key = self.eval(env, key_expr);
+                let assoc = &*assoc_ref.borrow();
+                for (key_expr, expr) in &assoc.pairs {
+                    let key = self.eval(env, &key_expr);
                     if let Expr::EId(s) = &key {
                         map.insert(s.clone(), self.eval(env, expr));
                     } else {
                         panic!("expected id key, got {}", key_expr);
                     }
                 }
-                Expr::EDict(ERef::new(Dict { map: map }))
+                Expr::EDict(ERef::new(Dict {
+                    pos: assoc.pos,
+                    map: map,
+                }))
             }
 
             // Lists also evaluate to themselves, with their values evaluated.
             // [expr ...] -> [ [eval expr] ...]
             Expr::EList(list_ref) => {
-                let exprs = &list_ref.borrow().exprs;
+                let list = &*list_ref.borrow();
+                let exprs = &list.exprs;
                 Expr::EList(ERef::new(List {
+                    pos: list.pos,
                     exprs: exprs
                         .into_iter()
-                        .map(|expr| self.eval(env, &expr))
+                        .map(|expr| self.eval(env, expr))
                         .collect(),
                 }))
             }
@@ -95,11 +102,13 @@ impl Kurt {
     pub fn quote(&self, env: &Expr, expr: &Expr) -> Expr {
         match &expr {
             Expr::EList(list_ref) => {
-                let exprs = &list_ref.borrow().exprs;
+                let list = &*list_ref.borrow();
+                let exprs = &list.exprs;
                 Expr::EList(ERef::new(List {
+                    pos: list.pos,
                     exprs: exprs
                         .into_iter()
-                        .map(|expr| self.quote(env, &expr))
+                        .map(|expr| self.quote(env, expr))
                         .collect(),
                 }))
             }
@@ -111,12 +120,15 @@ impl Kurt {
                         .into_iter()
                         .map(|pair| (self.quote(env, &pair.0), self.quote(env, &pair.1)))
                         .collect(),
+                    pos: assoc_ref.borrow().pos,
                 }))
             }
 
             Expr::EApply(apply_ref) => {
-                let exprs = &apply_ref.borrow().exprs;
+                let apply = &*apply_ref.borrow();
+                let exprs = &apply.exprs;
                 Expr::EApply(ERef::new(Apply {
+                    pos: apply.pos,
                     exprs: exprs
                         .into_iter()
                         .map(|expr| self.quote(env, expr))
