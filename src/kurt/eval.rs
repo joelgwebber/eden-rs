@@ -1,12 +1,12 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::Node;
+use crate::kurt::Expr;
 
-use super::{node::Block, Kurt, NodeRef};
+use super::{expr::Block, Kurt, ERef};
 
 impl Kurt {
-    // Evaluates a node within the given environment.
-    pub fn eval(&self, env: &Node, expr: &Node) -> Node {
+    // Evaluates an expr within the given environment.
+    pub fn eval(&self, env: &Expr, expr: &Expr) -> Expr {
         if self.debug {
             // println!("eval -- {} :: {}", env.borrow(), expr.borrow());
             println!("eval :: {}", expr);
@@ -14,24 +14,24 @@ impl Kurt {
 
         match expr {
             // Value types are resolved within their environment.
-            Node::Nil => self.get(env, expr),
-            Node::Bool(_) => self.get(env, expr),
-            Node::Num(_) => self.get(env, expr),
-            Node::Str(_) => self.get(env, expr),
-            Node::Id(_) => self.get(env, expr),
+            Expr::Nil => self.get(env, expr),
+            Expr::Bool(_) => self.get(env, expr),
+            Expr::Num(_) => self.get(env, expr),
+            Expr::Str(_) => self.get(env, expr),
+            Expr::Id(_) => self.get(env, expr),
 
-            // Quotes evaluate to their wrapped nodes.
-            Node::Quote(s) => self.quote(env, &*s.borrow()),
+            // Quotes evaluate to their wrapped exprs.
+            Expr::Quote(s) => self.quote(env, &*s.borrow()),
 
-            // Unquotes explicitly eval their nodes.
-            Node::Unquote(s) => self.eval(env, &*s.borrow()),
+            // Unquotes explicitly eval their exprs.
+            Expr::Unquote(s) => self.eval(env, &*s.borrow()),
 
             // Except blocks, which capture their environment.
-            Node::Block(bref) => {
+            Expr::Block(bref) => {
                 let b = &*bref.borrow();
-                if b.env == Node::Nil {
+                if b.env == Expr::Nil {
                     // Grab the block's environment if one isn't already specified.
-                    Node::Block(NodeRef::new(Block {
+                    Expr::Block(ERef::new(Block {
                         params: b.params.clone(),
                         expr: b.expr.clone(),
                         env: env.clone(),
@@ -44,61 +44,61 @@ impl Kurt {
 
             // Associations evaluate to dicts, with their keys and values evaluated.
             // { expr expr ... } -> { [eval expr] : [eval expr] ... }
-            Node::Assoc(vec_ref) => {
-                let mut map = HashMap::<String, Node>::new();
-                for (key_node, node) in &*vec_ref.borrow() {
-                    let key = self.eval(env, key_node);
-                    if let Node::Id(s) = &key {
-                        map.insert(s.clone(), self.eval(env, node));
+            Expr::Assoc(vec_ref) => {
+                let mut map = HashMap::<String, Expr>::new();
+                for (key_expr, expr) in &*vec_ref.borrow() {
+                    let key = self.eval(env, key_expr);
+                    if let Expr::Id(s) = &key {
+                        map.insert(s.clone(), self.eval(env, expr));
                     } else {
-                        panic!("expected id key, got {}", key_node);
+                        panic!("expected id key, got {}", key_expr);
                     }
                 }
-                Node::Dict(NodeRef::new(map))
+                Expr::Dict(ERef::new(map))
             }
 
             // Lists also evaluate to themselves, with their values evaluated.
             // [expr ...] -> [ [eval expr] ...]
-            Node::List(vec_ref) => {
+            Expr::List(vec_ref) => {
                 let vec = &*vec_ref.borrow();
-                Node::List(NodeRef::new(
+                Expr::List(ERef::new(
                     vec.into_iter()
-                        .map(|node| self.eval(env, node))
+                        .map(|expr| self.eval(env, expr))
                         .collect(),
                 ))
             }
 
             // Dicts evaluate to themselves (their values were already evaluated in their apply form).
-            Node::Dict(_) => expr.clone(),
+            Expr::Dict(_) => expr.clone(),
 
             // Apply (exprs...)
-            Node::Apply(vec_ref) => {
+            Expr::Apply(vec_ref) => {
                 let exprs = &*vec_ref.borrow();
                 self.apply(env, exprs.clone())
             }
 
             // Invoke native func.
-            Node::Native(name) => match self.builtins.get(name) {
+            Expr::Native(name) => match self.builtins.get(name) {
                 Some(f) => f(self, env.borrow()),
                 _ => panic!("unimplemented builtin '{}'", name),
             },
         }
     }
 
-    pub fn quote(&self, env: &Node, expr: &Node) -> Node {
+    pub fn quote(&self, env: &Expr, expr: &Expr) -> Expr {
         match &expr {
-            Node::List(vec_ref) => {
+            Expr::List(vec_ref) => {
                 let vec = &*vec_ref.borrow();
-                Node::List(NodeRef::new(
+                Expr::List(ERef::new(
                     vec.into_iter()
-                        .map(|node| self.quote(env, node))
+                        .map(|expr| self.quote(env, expr))
                         .collect(),
                 ))
             }
 
-            Node::Assoc(vec_ref) => {
+            Expr::Assoc(vec_ref) => {
                 let vec = &*vec_ref.borrow();
-                Node::Assoc(NodeRef::new(
+                Expr::Assoc(ERef::new(
                     vec.into_iter()
                         .map(|pair| {
                             (
@@ -110,16 +110,16 @@ impl Kurt {
                 ))
             }
 
-            Node::Apply(vec_ref) => {
+            Expr::Apply(vec_ref) => {
                 let vec = &*vec_ref.borrow();
-                Node::Apply(NodeRef::new(
+                Expr::Apply(ERef::new(
                     vec.into_iter()
-                        .map(|node| self.quote(env, node))
+                        .map(|expr| self.quote(env, expr))
                         .collect(),
                 ))
             }
 
-            Node::Unquote(node_ref) => self.eval(env, &*node_ref.borrow()),
+            Expr::Unquote(eref) => self.eval(env, &*eref.borrow()),
 
             _ => expr.clone(),
         }

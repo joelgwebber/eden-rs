@@ -5,8 +5,8 @@ mod tests {
     use velcro::vec_from;
 
     use crate::kurt::{
-        eq::node_eq,
-        Kurt, Node,
+        eq::expr_eq,
+        Kurt, Expr,
     };
 
     #[test]
@@ -76,12 +76,12 @@ mod tests {
         kurt.eval_src(src.into());
     }
 
-    fn native_expect(kurt: &Kurt, env: &Node) -> Node {
+    fn native_expect(kurt: &Kurt, env: &Expr) -> Expr {
         let expect = kurt.loc(env, "expect");
         let expr = kurt.loc(env, "expr");
-        if !node_eq(expect.clone(), expr.clone()) {
+        if !expr_eq(expect.clone(), expr.clone()) {
             assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
         }
-        Node::Nil
+        Expr::Nil
     }
 }

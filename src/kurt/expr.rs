@@ -12,10 +12,10 @@ use gc::GcCellRef;
 use gc::GcCellRefMut;
 use gc::Trace;
 
-// Node represents both the AST and runtime state.
-// Parsing produces a Node graph, and evaluation updates that graph.
+// Expr represents both the AST and runtime state.
+// Parsing produces an expr graph, and evaluation updates that graph.
 #[derive(Trace, Finalize, PartialEq)]
-pub enum Node {
+pub enum Expr {
     Nil,
     Num(f64),
     Bool(bool),
@@ -23,30 +23,30 @@ pub enum Node {
     Id(String),
     Native(&'static str),
 
-    List(NodeRef<Vec<Node>>),
-    Assoc(NodeRef<Vec<(Node, Node)>>),
-    Dict(NodeRef<HashMap<String, Node>>),
-    Block(NodeRef<Block>),
-    Apply(NodeRef<Vec<Node>>),
+    List(ERef<Vec<Expr>>),
+    Assoc(ERef<Vec<(Expr, Expr)>>),
+    Dict(ERef<HashMap<String, Expr>>),
+    Block(ERef<Block>),
+    Apply(ERef<Vec<Expr>>),
 
-    Quote(NodeRef<Node>),
-    Unquote(NodeRef<Node>),
+    Quote(ERef<Expr>),
+    Unquote(ERef<Expr>),
 }
 
-// Needed for the use of nodes in the panic handler.
-impl UnwindSafe for Node {}
-impl RefUnwindSafe for Node {}
+// Needed for the use of expressions in the panic handler.
+impl UnwindSafe for Expr {}
+impl RefUnwindSafe for Expr {}
 
-// State for a (| block) node, including params and environment.
+// State for a (| block) expr, including params and environment.
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Block {
     pub params: Vec<String>,
-    pub expr: Node,
-    pub env: Node,
-    pub slf: Node,
+    pub expr: Expr,
+    pub env: Expr,
+    pub slf: Expr,
 }
 
-// Utilities to simplify borrowing through NodeRefs.
+// Utilities to simplify borrowing through ERefs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BorrowError;
 impl Error for BorrowError {}
@@ -71,11 +71,11 @@ pub type Ref<'a, T> = GcCellRef<'a, T>;
 pub type RefMut<'a, T, U> = GcCellRefMut<'a, T, U>;
 
 #[derive(Trace, Finalize, PartialEq)]
-pub struct NodeRef<T: Trace + 'static>(Gc<GcCell<T>>);
+pub struct ERef<T: Trace + 'static>(Gc<GcCell<T>>);
 
-impl<T: Trace> NodeRef<T> {
-    pub fn new(node: T) -> Self {
-        NodeRef(Gc::new(GcCell::new(node)))
+impl<T: Trace> ERef<T> {
+    pub fn new(expr: T) -> Self {
+        ERef(Gc::new(GcCell::new(expr)))
     }
 
     pub fn borrow(&self) -> Ref<'_, T> {
@@ -95,32 +95,32 @@ impl<T: Trace> NodeRef<T> {
     }
 }
 
-// Make NodeRefs cloneable, so that Node can be cloneable.
-impl<T: Trace> Clone for NodeRef<T> {
+// Make ERefs cloneable, so that Expr can be cloneable.
+impl<T: Trace> Clone for ERef<T> {
     #[inline]
     fn clone(&self) -> Self {
-        NodeRef(self.0.clone())
+        ERef(self.0.clone())
     }
 }
 
-// Make nodes cloneable. Value-types are trivially cloned by value; ref-types only clone their refs.
-// Cloning a node is always a cheap operation.
-impl Clone for Node {
+// Make Expr cloneable. Value-types are trivially cloned by value; ref-types only clone their refs.
+// Cloning an expr is always a cheap operation.
+impl Clone for Expr {
     fn clone(&self) -> Self {
         match self {
-            Node::Nil => Node::Nil,
-            Node::Num(x) => Node::Num(*x),
-            Node::Bool(x) => Node::Bool(*x),
-            Node::Str(x) => Node::Str(x.clone()),
-            Node::Id(x) => Node::Id(x.clone()),
-            Node::Native(x) => Node::Native(*x),
-            Node::List(r) => Node::List(r.clone()),
-            Node::Assoc(r) => Node::Assoc(r.clone()),
-            Node::Dict(r) => Node::Dict(r.clone()),
-            Node::Block(r) => Node::Block(r.clone()),
-            Node::Apply(r) => Node::Apply(r.clone()),
-            Node::Quote(r) => Node::Quote(r.clone()),
-            Node::Unquote(r) => Node::Unquote(r.clone()),
+            Expr::Nil => Expr::Nil,
+            Expr::Num(x) => Expr::Num(*x),
+            Expr::Bool(x) => Expr::Bool(*x),
+            Expr::Str(x) => Expr::Str(x.clone()),
+            Expr::Id(x) => Expr::Id(x.clone()),
+            Expr::Native(x) => Expr::Native(*x),
+            Expr::List(r) => Expr::List(r.clone()),
+            Expr::Assoc(r) => Expr::Assoc(r.clone()),
+            Expr::Dict(r) => Expr::Dict(r.clone()),
+            Expr::Block(r) => Expr::Block(r.clone()),
+            Expr::Apply(r) => Expr::Apply(r.clone()),
+            Expr::Quote(r) => Expr::Quote(r.clone()),
+            Expr::Unquote(r) => Expr::Unquote(r.clone()),
         }
     }
 }

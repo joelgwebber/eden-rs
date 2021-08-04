@@ -1,61 +1,61 @@
-use super::{Kurt, Node};
+use super::{Kurt, Expr};
 
 impl Kurt {
-    pub fn native_eq(&self, env: &Node) -> Node {
+    pub fn native_eq(&self, env: &Expr) -> Expr {
         let _a = self.loc(env, "x");
         let _b = self.loc(env, "y");
 
-        Node::Bool(node_eq(_a, _b))
+        Expr::Bool(expr_eq(_a, _b))
     }
 }
 
-pub fn node_eq(_a: Node, _b: Node) -> bool {
+pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
     match &_a {
-        Node::Nil => {
-            if let Node::Nil = &_b {
+        Expr::Nil => {
+            if let Expr::Nil = &_b {
                 true
             } else {
                 false
             }
         }
-        Node::Bool(a) => {
-            if let Node::Bool(b) = &_b {
+        Expr::Bool(a) => {
+            if let Expr::Bool(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Node::Num(a) => {
-            if let Node::Num(b) = &_b {
+        Expr::Num(a) => {
+            if let Expr::Num(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Node::Str(a) => {
-            if let Node::Str(b) = &_b {
+        Expr::Str(a) => {
+            if let Expr::Str(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
-        Node::Id(a) => {
-            if let Node::Id(b) = &_b {
+        Expr::Id(a) => {
+            if let Expr::Id(b) = &_b {
                 a == b
             } else {
                 false
             }
         }
 
-        Node::List(a_ref) => {
-            if let Node::List(b_ref) = &_b {
+        Expr::List(a_ref) => {
+            if let Expr::List(b_ref) = &_b {
                 let a_vec = &*a_ref.borrow();
                 let b_vec = &*b_ref.borrow();
                 let mut eq = false;
                 if a_vec.len() == b_vec.len() {
                     eq = true;
                     for i in 0..a_vec.len() {
-                        if !node_eq(a_vec[i].clone(), b_vec[i].clone()) {
+                        if !expr_eq(a_vec[i].clone(), b_vec[i].clone()) {
                             eq = false;
                             break;
                         }
@@ -67,19 +67,19 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
             }
         }
 
-        Node::Assoc(a_ref) => {
-            if let Node::Assoc(b_ref) = &_b {
+        Expr::Assoc(a_ref) => {
+            if let Expr::Assoc(b_ref) = &_b {
                 let a_vec = &*a_ref.borrow();
                 let b_vec = &*b_ref.borrow();
                 let mut eq = false;
                 if a_vec.len() == b_vec.len() {
                     eq = true;
                     for i in 0..a_vec.len() {
-                        if !node_eq(a_vec[i].0.clone(), b_vec[i].0.clone()) {
+                        if !expr_eq(a_vec[i].0.clone(), b_vec[i].0.clone()) {
                             eq = false;
                             break;
                         }
-                        if !node_eq(a_vec[i].1.clone(), b_vec[i].1.clone()) {
+                        if !expr_eq(a_vec[i].1.clone(), b_vec[i].1.clone()) {
                             eq = false;
                             break;
                         }
@@ -91,15 +91,15 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
             }
         }
 
-        Node::Dict(a_ref) => {
-            if let Node::Dict(b_ref) = &_b {
+        Expr::Dict(a_ref) => {
+            if let Expr::Dict(b_ref) = &_b {
                 let a_map = &*a_ref.borrow();
                 let b_map = &*b_ref.borrow();
                 let mut eq = false;
                 if a_map.len() == b_map.len() {
                     eq = true;
                     for (k, v) in a_map {
-                        if !node_eq(v.clone(), b_map[k].clone()) {
+                        if !expr_eq(v.clone(), b_map[k].clone()) {
                             eq = false;
                             break;
                         }
@@ -112,15 +112,15 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
         }
 
         // TODO: Merge with List.
-        Node::Apply(a_ref) => {
-            if let Node::Apply(b_ref) = &_b {
+        Expr::Apply(a_ref) => {
+            if let Expr::Apply(b_ref) = &_b {
                 let a_vec = &*a_ref.borrow();
                 let b_vec = &*b_ref.borrow();
                 let mut eq = false;
                 if a_vec.len() == b_vec.len() {
                     eq = true;
                     for i in 0..a_vec.len() {
-                        if !node_eq(a_vec[i].clone(), b_vec[i].clone()) {
+                        if !expr_eq(a_vec[i].clone(), b_vec[i].clone()) {
                             eq = false;
                             break;
                         }
@@ -132,9 +132,9 @@ pub fn node_eq(_a: Node, _b: Node) -> bool {
             }
         }
 
-        Node::Quote(a) => {
-            if let Node::Quote(b) = &_b {
-                node_eq((&*a.borrow()).clone(), (&*b.borrow()).clone())
+        Expr::Quote(a) => {
+            if let Expr::Quote(b) = &_b {
+                expr_eq((&*a.borrow()).clone(), (&*b.borrow()).clone())
             } else {
                 false
             }

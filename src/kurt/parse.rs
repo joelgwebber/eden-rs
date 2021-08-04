@@ -1,9 +1,9 @@
 use pest::iterators::Pair;
 use pest::Parser;
 
-use crate::kurt::node::Block;
-use crate::kurt::Node;
-use crate::kurt::NodeRef;
+use crate::kurt::expr::Block;
+use crate::kurt::Expr;
+use crate::kurt::ERef;
 
 use super::Kurt;
 
@@ -12,16 +12,16 @@ use super::Kurt;
 struct KurtParser;
 
 impl Kurt {
-    pub fn parse(&self, src: String) -> Node {
+    pub fn parse(&self, src: String) -> Expr {
         let file = KurtParser::parse(Rule::file, &src)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
 
-        fn parse_value(expr: Pair<Rule>) -> Node {
+        fn parse_value(expr: Pair<Rule>) -> Expr {
             match expr.as_rule() {
                 Rule::dict => {
-                    let mut vec = Vec::<(Node, Node)>::new();
+                    let mut vec = Vec::<(Expr, Expr)>::new();
                     expr.into_inner().for_each(|pair| match pair.as_rule() {
                         Rule::pair => {
                             let mut inner_rules = pair.into_inner();
@@ -31,7 +31,7 @@ impl Kurt {
                         }
                         _ => unreachable!(),
                     });
-                    Node::Assoc(NodeRef::new(vec))
+                    Expr::Assoc(ERef::new(vec))
                 }
 
                 Rule::block => {
@@ -46,32 +46,32 @@ impl Kurt {
                         })
                         .collect();
                     let exprs = rules.map(parse_value).collect();
-                    Node::Block(NodeRef::new(Block {
+                    Expr::Block(ERef::new(Block {
                         params: params,
-                        expr: Node::Apply(NodeRef::new(exprs)),
-                        env: Node::Nil,
-                        slf: Node::Nil,
+                        expr: Expr::Apply(ERef::new(exprs)),
+                        env: Expr::Nil,
+                        slf: Expr::Nil,
                     }))
                 }
 
                 Rule::apply => {
-                    Node::Apply(NodeRef::new(expr.into_inner().map(parse_value).collect()))
+                    Expr::Apply(ERef::new(expr.into_inner().map(parse_value).collect()))
                 }
                 Rule::list => {
-                    Node::List(NodeRef::new(expr.into_inner().map(parse_value).collect()))
+                    Expr::List(ERef::new(expr.into_inner().map(parse_value).collect()))
                 }
-                Rule::number => Node::Num(expr.as_str().parse().unwrap()),
-                Rule::boolean => Node::Bool(expr.as_str().parse().unwrap()),
-                Rule::string => Node::Str(String::from(expr.as_str())),
-                Rule::id => Node::Id(String::from(expr.as_str())),
+                Rule::number => Expr::Num(expr.as_str().parse().unwrap()),
+                Rule::boolean => Expr::Bool(expr.as_str().parse().unwrap()),
+                Rule::string => Expr::Str(String::from(expr.as_str())),
+                Rule::id => Expr::Id(String::from(expr.as_str())),
                 Rule::prim => parse_value(expr.into_inner().next().unwrap()),
                 Rule::expr => parse_value(expr.into_inner().next().unwrap()),
 
                 Rule::quote => {
-                    Node::Quote(NodeRef::new(parse_value(expr.into_inner().next().unwrap())))
+                    Expr::Quote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
                 }
                 Rule::unquote => {
-                    Node::Unquote(NodeRef::new(parse_value(expr.into_inner().next().unwrap())))
+                    Expr::Unquote(ERef::new(parse_value(expr.into_inner().next().unwrap())))
                 }
 
                 _ => unreachable!(),

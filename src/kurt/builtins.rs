@@ -2,9 +2,9 @@ use std::{panic, vec};
 
 use velcro::{hash_map, vec_from};
 
-use crate::kurt::Node;
+use crate::kurt::Expr;
 
-use super::{node::Block, Kurt, NodeRef};
+use super::{expr::Block, Kurt, ERef};
 
 impl Kurt {
     pub fn init_builtins(&mut self) {
@@ -26,11 +26,11 @@ impl Kurt {
         self.add_builtin("not", &vec_from!["x"], Kurt::native_not);
 
         // Default implementation dicts.
-        self.def_dict = Node::Dict(NodeRef::new(hash_map! {
+        self.def_dict = Expr::Dict(ERef::new(hash_map! {
             "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
             "def".into(): Kurt::builtin("def".into(), &vec_from!["name", "value"]),
         }));
-        self.def_list = Node::Dict(NodeRef::new(hash_map! {
+        self.def_list = Expr::Dict(ERef::new(hash_map! {
             "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
         }));
 
@@ -41,22 +41,22 @@ impl Kurt {
         }));
     }
 
-    pub fn builtin(name: &'static str, args: &Vec<String>) -> Node {
-        Node::Block(NodeRef::new(Block {
+    pub fn builtin(name: &'static str, args: &Vec<String>) -> Expr {
+        Expr::Block(ERef::new(Block {
             params: args.clone(),
-            expr: Node::Native(name),
-            env: Node::Nil,
-            slf: Node::Nil,
+            expr: Expr::Native(name),
+            env: Expr::Nil,
+            slf: Expr::Nil,
         }))
     }
 
-    pub fn add_builtin(&mut self, name: &'static str, args: &Vec<String>, f: fn(&Kurt, &Node) -> Node) {
+    pub fn add_builtin(&mut self, name: &'static str, args: &Vec<String>, f: fn(&Kurt, &Expr) -> Expr) {
         self.builtins.insert(name, f);
-        self.def(&self.root, &Node::Id(name.to_string()), &Kurt::builtin(name, args));
+        self.def(&self.root, &Expr::Id(name.to_string()), &Kurt::builtin(name, args));
     }
 
-    pub fn loc(&self, env: &Node, name: &str) -> Node {
-        if let Node::Dict(env_map_ref) = &env {
+    pub fn loc(&self, env: &Expr, name: &str) -> Expr {
+        if let Expr::Dict(env_map_ref) = &env {
             let env_map = &*env_map_ref.borrow();
             match env_map.get(name) {
                 Some(result) => result.clone(),
@@ -67,11 +67,11 @@ impl Kurt {
         }
     }
 
-    pub fn loc_opt(&self, env: &Node, name: &str) -> Option<Node> {
-        if let Node::Dict(env_map_ref) = &env {
+    pub fn loc_opt(&self, env: &Expr, name: &str) -> Option<Expr> {
+        if let Expr::Dict(env_map_ref) = &env {
             let env_map = &*env_map_ref.borrow();
             match env_map.get(name) {
-                Some(node) => Some(node.clone()),
+                Some(expr) => Some(expr.clone()),
                 None => None,
             }
         } else {
@@ -79,45 +79,45 @@ impl Kurt {
         }
     }
 
-    pub fn loc_str(&self, env: &Node, name: &str) -> String {
-        let node = self.loc(env, name);
-        match &node {
-            Node::Str(s) => s.clone(),
+    pub fn loc_str(&self, env: &Expr, name: &str) -> String {
+        let expr = self.loc(env, name);
+        match &expr {
+            Expr::Str(s) => s.clone(),
             _ => panic!(),
         }
     }
 
-    pub fn loc_num(&self, env: &Node, name: &str) -> f64 {
-        let node = self.loc(env, name);
-        match &node {
-            Node::Num(x) => *x,
+    pub fn loc_num(&self, env: &Expr, name: &str) -> f64 {
+        let expr = self.loc(env, name);
+        match &expr {
+            Expr::Num(x) => *x,
             _ => panic!(),
         }
     }
 
-    pub fn loc_bool(&self, env: &Node, name: &str) -> bool {
-        let node = self.loc(env, name);
-        match &node {
-            Node::Bool(x) => *x,
+    pub fn loc_bool(&self, env: &Expr, name: &str) -> bool {
+        let expr = self.loc(env, name);
+        match &expr {
+            Expr::Bool(x) => *x,
             _ => panic!(),
         }
     }
 
-    pub fn loc_opt_num(&self, env: &Node, name: &str) -> Option<f64> {
+    pub fn loc_opt_num(&self, env: &Expr, name: &str) -> Option<f64> {
         match self.loc_opt(env, name) {
-            Some(node) => match &node {
-                Node::Num(x) => Some(*x),
+            Some(expr) => match &expr {
+                Expr::Num(x) => Some(*x),
                 _ => panic!(),
             },
             None => None,
         }
     }
 
-    fn native_do(&self, env: &Node) -> Node {
+    fn native_do(&self, env: &Expr) -> Expr {
         let exprs = self.loc(&env, "exprs");
         match &exprs {
-            Node::List(vec_ref) => {
-                let mut last = Node::Nil;
+            Expr::List(vec_ref) => {
+                let mut last = Expr::Nil;
                 for expr in &*vec_ref.borrow() {
                     last = self.apply(&env, vec![expr.clone()])
                 }
@@ -127,21 +127,21 @@ impl Kurt {
         }
     }
 
-    fn native_let(&self, env: &Node) -> Node {
+    fn native_let(&self, env: &Expr) -> Expr {
         let vars = self.loc(&env, "vars");
         let expr = self.loc(&env, "expr");
         self.apply(env, vec![vars, expr])
     }
 
-    fn native_def(&self, env: &Node) -> Node {
+    fn native_def(&self, env: &Expr) -> Expr {
         let this = self.loc(&env, "@");
         let name = self.loc(&env, "name");
         let value = self.loc(&env, "value");
         self.def(&this, &name, &value);
-        Node::Nil
+        Expr::Nil
     }
 
-    pub fn native_set(&self, env: &Node) -> Node {
+    pub fn native_set(&self, env: &Expr) -> Expr {
         let this = self.loc(&env, "@");
         let name = self.loc(&env, "name");
         let value = self.loc(&env, "value");
@@ -149,16 +149,16 @@ impl Kurt {
         env.clone()
     }
 
-    fn native_log(&self, env: &Node) -> Node {
+    fn native_log(&self, env: &Expr) -> Expr {
         println!("{}", self.loc(&env, "msg"));
-        Node::Nil
+        Expr::Nil
     }
 
-    fn native_try(&self, env: &Node) -> Node {
+    fn native_try(&self, env: &Expr) -> Expr {
         let block = self.loc(&env, "block");
         let catch = self.loc(&env, "catch");
         match (&block, &catch) {
-            (Node::Block(_), Node::Block(_)) => {
+            (Expr::Block(_), Expr::Block(_)) => {
                 let result = panic::catch_unwind(|| {
                     self.apply(&env, vec![block.clone()]);
                 });
@@ -168,30 +168,30 @@ impl Kurt {
             }
             (_, _) => panic!(),
         }
-        Node::Nil
+        Expr::Nil
     }
 
-    fn native_add(&self, env: &Node) -> Node {
+    fn native_add(&self, env: &Expr) -> Expr {
         let mut total = 0f64;
         self.addmul_helper(env, |x| total += x);
-        Node::Num(total)
+        Expr::Num(total)
     }
 
-    fn native_mul(&self, env: &Node) -> Node {
+    fn native_mul(&self, env: &Expr) -> Expr {
         let mut total = 1f64;
         self.addmul_helper(env, |x| total *= x);
-        Node::Num(total)
+        Expr::Num(total)
     }
 
-    fn addmul_helper<F>(&self, env: &Node, mut func: F)
+    fn addmul_helper<F>(&self, env: &Expr, mut func: F)
     where
         F: FnMut(f64),
     {
         match &self.loc(&env, "vals") {
-            Node::List(vec_ref) => {
+            Expr::List(vec_ref) => {
                 for val in &*vec_ref.borrow() {
                     match val {
-                        Node::Num(x) => func(*x),
+                        Expr::Num(x) => func(*x),
                         _ => panic!("+ requires numeric values"),
                     }
                 }
@@ -200,26 +200,26 @@ impl Kurt {
         }
     }
 
-    fn native_sub(&self, env: &Node) -> Node {
+    fn native_sub(&self, env: &Expr) -> Expr {
         let x = self.loc_num(&env, "x");
         let oy = self.loc_opt_num(env, "y");
         match oy {
-            Some(y) => Node::Num(x - y),
-            None => Node::Num(-x),
+            Some(y) => Expr::Num(x - y),
+            None => Expr::Num(-x),
         }
     }
 
-    fn native_div(&self, env: &Node) -> Node {
+    fn native_div(&self, env: &Expr) -> Expr {
         let x = self.loc_num(&env, "x");
         let oy = self.loc_opt_num(env, "y");
         match oy {
-            Some(y) => Node::Num(x / y),
-            None => Node::Num(1f64 / x),
+            Some(y) => Expr::Num(x / y),
+            None => Expr::Num(1f64 / x),
         }
     }
 
-    fn native_not(&self, env: &Node) -> Node {
+    fn native_not(&self, env: &Expr) -> Expr {
         let x = self.loc_bool(&env, "x");
-        Node::Bool(!x)
+        Expr::Bool(!x)
     }
 }

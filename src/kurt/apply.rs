@@ -1,9 +1,9 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::node::NodeRef;
+use crate::kurt::expr::ERef;
 
 use super::{
-    node::{Block, Node},
+    expr::{Block, Expr},
     Kurt,
 };
 
@@ -16,22 +16,22 @@ impl Kurt {
     // - Apply single expression -- (expr) => expr
     // - Apply empty list        -- () => nil
     //
-    pub fn apply(&self, env: &Node, exprs: Vec<Node>) -> Node {
+    pub fn apply(&self, env: &Expr, exprs: Vec<Expr>) -> Expr {
         if self.debug {
-            let ls = Node::List(NodeRef::new(exprs.clone()));
+            let ls = Expr::List(ERef::new(exprs.clone()));
             // println!("apply -- {} :: {}", env.clone(), ls);
             println!("apply :: {}", ls);
         }
 
         // () => nil
         if exprs.len() == 0 {
-            return Node::Nil;
+            return Expr::Nil;
         }
 
         let first = &self.eval(env, exprs.first().unwrap());
         match first {
             // (block expr*) -> positional arg invocation
-            Node::Block(_) => self.invoke(env, first.clone(), exprs[1..].to_vec()),
+            Expr::Block(_) => self.invoke(env, first.clone(), exprs[1..].to_vec()),
 
             _ => {
                 let result = match exprs.len() {
@@ -42,7 +42,7 @@ impl Kurt {
                         let second = &self.eval(env, exprs.get(1).unwrap());
                         match second {
                             // (env block) -> eval block in env.
-                            Node::Block(block_ref) => {
+                            Expr::Block(block_ref) => {
                                 let block = &*block_ref.borrow();
                                 let frame = self.new_frame(&env, &first, &block);
                                 self.eval(&frame, &block.expr)
@@ -60,12 +60,12 @@ impl Kurt {
         }
     }
 
-    fn maybe_wrap(&self, slf: Node, result: Node) -> Node {
+    fn maybe_wrap(&self, slf: Expr, result: Expr) -> Expr {
         match &result {
-            Node::Block(blk_ref) => {
+            Expr::Block(blk_ref) => {
                 // Capture self reference in block.
                 let block = &*blk_ref.borrow();
-                Node::Block(NodeRef::new(Block {
+                Expr::Block(ERef::new(Block {
                     params: block.params.clone(),
                     env: block.env.clone(),
                     expr: block.expr.clone(),
@@ -76,43 +76,43 @@ impl Kurt {
         }
     }
 
-    fn invoke(&self, env: &Node, block_node: Node, args: Vec<Node>) -> Node {
+    fn invoke(&self, env: &Expr, block_expr: Expr, args: Vec<Expr>) -> Expr {
         if self.debug {
-            let ls = Node::List(NodeRef::new(args.clone()));
+            let ls = Expr::List(ERef::new(args.clone()));
             // println!("invoke -- {} :: {}", env.clone(), ls);
             println!("invoke :: {}", ls);
         }
 
-        if let Node::Block(block_ref) = block_node.borrow() {
+        if let Expr::Block(block_ref) = block_expr.borrow() {
             let block = &*block_ref.borrow();
-            let mut frame = HashMap::<String, Node>::new();
+            let mut frame = HashMap::<String, Expr>::new();
             // TODO: validate param/arg match.
             for i in 0..args.len() {
                 frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
             }
-            let nf = Node::Dict(NodeRef::new(frame));
-            self.apply(env, vec![nf.clone(), block_node.clone()])
+            let nf = Expr::Dict(ERef::new(frame));
+            self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
-            panic!("tried to invoke with non-block node {}", block_node)
+            panic!("tried to invoke with non-block expr {}", block_expr)
         }
     }
 
-    fn new_frame(&self, env: &Node, args: &Node, blk: &Block) -> Node {
-        let mut new_map = HashMap::<String, Node>::new();
-        if let Node::Dict(map_ref) = args {
-            for (key, node) in &*map_ref.borrow() {
-                new_map.insert(key.clone(), node.clone());
+    fn new_frame(&self, env: &Expr, args: &Expr, blk: &Block) -> Expr {
+        let mut new_map = HashMap::<String, Expr>::new();
+        if let Expr::Dict(map_ref) = args {
+            for (key, expr) in &*map_ref.borrow() {
+                new_map.insert(key.clone(), expr.clone());
             }
         }
         new_map.insert(
             "@".to_string(),
-            if blk.slf != Node::Nil {
+            if blk.slf != Expr::Nil {
                 blk.slf.clone()
             } else {
                 env.clone()
             },
         );
         new_map.insert("^".to_string(), blk.env.clone());
-        Node::Dict(NodeRef::new(new_map))
+        Expr::Dict(ERef::new(new_map))
     }
 }
