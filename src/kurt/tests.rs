@@ -73,12 +73,12 @@ mod tests {
         println!("-- {}", name);
         let mut kurt = Kurt::new();
         kurt.add_builtin("expect", &vec_from!["expect", "expr"], native_expect);
-        kurt.eval_src(src.into());
+        kurt.eval_src(name, src);
     }
 
     fn native_expect(kurt: &Kurt, env: &Expr) -> Expr {
-        let expect = kurt.loc(env, "expect");
-        let expr = kurt.loc(env, "expr");
+        let expect = kurt.loc_expr(env, "expect");
+        let expr = kurt.loc_expr(env, "expr");
         if !expr_eq(expect.clone(), expr.clone()) {
             assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
         }

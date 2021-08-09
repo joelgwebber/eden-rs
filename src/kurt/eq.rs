@@ -2,8 +2,8 @@ use super::{Kurt, Expr};
 
 impl Kurt {
     pub fn native_eq(&self, env: &Expr) -> Expr {
-        let _a = self.loc(env, "x");
-        let _b = self.loc(env, "y");
+        let _a = self.loc_expr(env, "x");
+        let _b = self.loc_expr(env, "y");
 
         Expr::EBool(expr_eq(_a, _b))
     }

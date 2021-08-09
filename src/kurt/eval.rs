@@ -38,7 +38,7 @@ impl Kurt {
                 if b.env == Expr::ENil {
                     // Grab the block's environment if one isn't already specified.
                     Expr::EBlock(ERef::new(Block {
-                        pos: b.pos,
+                        loc: b.loc.clone(),
                         params: b.params.clone(),
                         expr: b.expr.clone(),
                         env: env.clone(),
@@ -63,7 +63,7 @@ impl Kurt {
                     }
                 }
                 Expr::EDict(ERef::new(Dict {
-                    pos: assoc.pos,
+                    loc: assoc.loc.clone(),
                     map: map,
                 }))
             }
@@ -74,7 +74,7 @@ impl Kurt {
                 let list = &*list_ref.borrow();
                 let exprs = &list.exprs;
                 Expr::EList(ERef::new(List {
-                    pos: list.pos,
+                    loc: list.loc.clone(),
                     exprs: exprs
                         .into_iter()
                         .map(|expr| self.eval(env, expr))
@@ -105,7 +105,7 @@ impl Kurt {
                 let list = &*list_ref.borrow();
                 let exprs = &list.exprs;
                 Expr::EList(ERef::new(List {
-                    pos: list.pos,
+                    loc: list.loc.clone(),
                     exprs: exprs
                         .into_iter()
                         .map(|expr| self.quote(env, expr))
@@ -120,7 +120,7 @@ impl Kurt {
                         .into_iter()
                         .map(|pair| (self.quote(env, &pair.0), self.quote(env, &pair.1)))
                         .collect(),
-                    pos: assoc_ref.borrow().pos,
+                    loc: assoc_ref.borrow().loc.clone(),
                 }))
             }
 
@@ -128,7 +128,7 @@ impl Kurt {
                 let apply = &*apply_ref.borrow();
                 let exprs = &apply.exprs;
                 Expr::EApply(ERef::new(Apply {
-                    pos: apply.pos,
+                    loc: apply.loc.clone(),
                     exprs: exprs
                         .into_iter()
                         .map(|expr| self.quote(env, expr))

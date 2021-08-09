@@ -1,4 +1,12 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::panic::{RefUnwindSafe, UnwindSafe};
+
+use gc::Finalize;
+use gc::Trace;
+use velcro::hash_map;
+
+use crate::kurt::expr::List;
 
 use self::expr::{Dict, ERef, Expr};
 
@@ -14,10 +22,24 @@ mod tests;
 
 pub struct Kurt {
     pub root: Expr,
+    debug: bool,
+
     builtins: HashMap<&'static str, fn(&Kurt, &Expr) -> Expr>,
     def_dict: Expr,
     def_list: Expr,
-    debug: bool,
+
+    exception: RefCell<Option<Expr>>,
+}
+
+// Needed for the use of kurt refs in the panic handler.
+impl UnwindSafe for Kurt {}
+impl RefUnwindSafe for Kurt {}
+
+#[derive(Debug, Default, Trace, Finalize, PartialEq, Clone)]
+pub struct Loc {
+    file: String,
+    name: String,
+    pos: (usize, usize),
 }
 
 impl Kurt {
@@ -25,20 +47,21 @@ impl Kurt {
         let mut kurt = Kurt {
             builtins: HashMap::new(),
             root: Expr::EDict(ERef::new(Dict {
-                pos: (0, 0),
                 map: HashMap::new(),
+                loc: Loc::default(),
             })),
             def_dict: Expr::ENil,
             def_list: Expr::ENil,
             debug: false,
+            exception: RefCell::new(None),
         };
         kurt.init_builtins();
         kurt
     }
 
-    pub fn eval_src(&mut self, src: &str) -> Expr {
-        let expr = self.parse(src.into());
-        self.eval(&self.root, &expr)
+    pub fn eval_src(&self, name: &str, src: &str) -> Expr {
+        let expr = self.parse(name.into(), src.into());
+        self.eval(&self.root.clone(), &expr)
     }
 
     pub fn def(&self, env: &Expr, key: &Expr, val: &Expr) {
@@ -88,7 +111,7 @@ impl Kurt {
                             Expr::EDict(dict_ref) => {
                                 dict_ref.borrow().map.get(name).unwrap().clone()
                             }
-                            Expr::ENil => panic!("{} not found", name),
+                            Expr::ENil => self.throw(env, format!("'{}' not found", name)),
                             _ => panic!("get requires a dict"),
                         }
                     }
@@ -137,5 +160,44 @@ impl Kurt {
 
             _ => Expr::ENil,
         }
+    }
+
+    pub fn throw(&self, env: &Expr, msg: String) -> ! {
+        let mut map = HashMap::<String, Expr>::new();
+        map.insert("message".to_string(), Expr::EStr(msg));
+        let mut stack = Vec::<Expr>::new();
+
+        let mut cur = Some(env.clone());
+        while let Some(expr) = cur {
+            match expr.loc() {
+                Some(loc) => stack.push(Expr::EDict(ERef::new(Dict {
+                    loc: Loc::default(),
+                    map: hash_map! {
+                        "file".into(): Expr::EStr(loc.file.clone()),
+                        "name".into(): Expr::EStr(loc.name.clone()),
+                        "pos".into(): Expr::EList(ERef::new(List{
+                            loc: Loc::default(),
+                            exprs: vec![Expr::ENum(loc.pos.0 as f64), Expr::ENum(loc.pos.1 as f64)]
+                        })),
+                    },
+                }))),
+                None => (),
+            }
+            cur = expr.caller();
+        }
+
+        map.insert(
+            "stack".to_string(),
+            Expr::EList(ERef::new(List {
+                loc: Loc::default(),
+                exprs: stack,
+            })),
+        );
+
+        self.exception.replace(Some(Expr::EDict(ERef::new(Dict {
+            loc: Loc::default(),
+            map: map,
+        }))));
+        panic!("exception")
     }
 }

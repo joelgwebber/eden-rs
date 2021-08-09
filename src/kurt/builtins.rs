@@ -1,8 +1,11 @@
-use std::{panic, vec};
+use std::{
+    panic::{self},
+    vec,
+};
 
 use velcro::{hash_map, vec_from};
 
-use crate::kurt::{expr::Dict, Expr};
+use crate::kurt::{Expr, Loc, expr::Dict};
 
 use super::{expr::Block, ERef, Kurt};
 
@@ -27,29 +30,30 @@ impl Kurt {
 
         // Default implementation dicts.
         self.def_dict = Expr::EDict(ERef::new(Dict {
-            pos: (0, 0),
+            loc: Loc::default(),
             map: hash_map! {
-                "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
-                "def".into(): Kurt::builtin("def".into(), &vec_from!["name", "value"]),
+                "set".into(): self.builtin("set", &vec_from!["name", "value"]),
+                "def".into(): self.builtin("def", &vec_from!["name", "value"]),
             },
         }));
         self.def_list = Expr::EDict(ERef::new(Dict {
-            pos: (0, 0),
+            loc: Loc::default(),
             map: hash_map! {
-                "set".into(): Kurt::builtin("set".into(), &vec_from!["name", "value"]),
+                "set".into(): self.builtin("set", &vec_from!["name", "value"]),
             },
         }));
 
-        // Override panic handler.
-        panic::set_hook(Box::new(|info| {
-            // TODO: Something special to keep track of panic info to promote to catch blocks.
-            println!("{:?}", info);
-        }));
+        // Override panic handler to suppress automatic stack traces.
+        panic::set_hook(Box::new(|_| {}));
     }
 
-    pub fn builtin(name: &'static str, args: &Vec<String>) -> Expr {
+    pub fn builtin(&self, name: &'static str, args: &Vec<String>) -> Expr {
         Expr::EBlock(ERef::new(Block {
-            pos: (0, 0),
+            loc: Loc {
+                file: "".to_string(),
+                name: name.to_string(),
+                pos: (0, 0),
+            },
             params: args.clone(),
             expr: Expr::ENative(name),
             env: Expr::ENil,
@@ -65,18 +69,18 @@ impl Kurt {
     ) {
         self.builtins.insert(name, f);
         self.def(
-            &self.root,
+            &self.root.clone(),
             &Expr::EId(name.to_string()),
-            &Kurt::builtin(name, args),
+            &self.builtin(name, args).clone(),
         );
     }
 
-    pub fn loc(&self, env: &Expr, name: &str) -> Expr {
+    pub fn loc_expr(&self, env: &Expr, name: &str) -> Expr {
         if let Expr::EDict(env_map_ref) = &env {
             let env_map = &env_map_ref.borrow().map;
             match env_map.get(name) {
                 Some(result) => result.clone(),
-                None => panic!("missing local '{}' in {}", name, env),
+                None => self.throw(&env, format!("missing local '{}' in {}", name, env)),
             }
         } else {
             panic!("expected dict env, got '{}'", env)
@@ -96,7 +100,7 @@ impl Kurt {
     }
 
     pub fn loc_str(&self, env: &Expr, name: &str) -> String {
-        let expr = self.loc(env, name);
+        let expr = self.loc_expr(env, name);
         match &expr {
             Expr::EStr(s) => s.clone(),
             _ => panic!(),
@@ -104,7 +108,7 @@ impl Kurt {
     }
 
     pub fn loc_num(&self, env: &Expr, name: &str) -> f64 {
-        let expr = self.loc(env, name);
+        let expr = self.loc_expr(env, name);
         match &expr {
             Expr::ENum(x) => *x,
             _ => panic!(),
@@ -112,7 +116,7 @@ impl Kurt {
     }
 
     pub fn loc_bool(&self, env: &Expr, name: &str) -> bool {
-        let expr = self.loc(env, name);
+        let expr = self.loc_expr(env, name);
         match &expr {
             Expr::EBool(x) => *x,
             _ => panic!(),
@@ -130,7 +134,7 @@ impl Kurt {
     }
 
     fn native_do(&self, env: &Expr) -> Expr {
-        let exprs = self.loc(&env, "exprs");
+        let exprs = self.loc_expr(&env, "exprs");
         match &exprs {
             Expr::EList(vec_ref) => {
                 let mut last = Expr::ENil;
@@ -144,47 +148,59 @@ impl Kurt {
     }
 
     fn native_let(&self, env: &Expr) -> Expr {
-        let vars = self.loc(&env, "vars");
-        let expr = self.loc(&env, "expr");
+        let vars = self.loc_expr(&env, "vars");
+        let expr = self.loc_expr(&env, "expr");
         self.apply(env, vec![vars, expr])
     }
 
     fn native_def(&self, env: &Expr) -> Expr {
-        let this = self.loc(&env, "@");
-        let name = self.loc(&env, "name");
-        let value = self.loc(&env, "value");
+        let this = self.loc_expr(&env, "@");
+        let name = self.loc_expr(&env, "name");
+        let value = self.loc_expr(&env, "value");
+
+        // Kind of a hack -- assign block names in (def ...)
+        match (&name, &value) {
+            (Expr::EId(id), Expr::EBlock(block_ref)) => {
+                let block = &mut *block_ref.borrow_mut();
+                block.loc.name = id.clone();
+            }
+            (_, _) => (),
+        }
+
         self.def(&this, &name, &value);
         Expr::ENil
     }
 
     pub fn native_set(&self, env: &Expr) -> Expr {
-        let this = self.loc(&env, "@");
-        let name = self.loc(&env, "name");
-        let value = self.loc(&env, "value");
+        let this = self.loc_expr(&env, "@");
+        let name = self.loc_expr(&env, "name");
+        let value = self.loc_expr(&env, "value");
         self.set(&this, &name, &value);
         env.clone()
     }
 
     fn native_log(&self, env: &Expr) -> Expr {
-        println!("{}", self.loc(&env, "msg"));
+        println!("{}", self.loc_expr(&env, "msg"));
         Expr::ENil
     }
 
     fn native_try(&self, env: &Expr) -> Expr {
-        let block = self.loc(&env, "block");
-        let catch = self.loc(&env, "catch");
+        let block = self.loc_expr(&env, "block");
+        let catch = self.loc_expr(&env, "catch");
         match (&block, &catch) {
             (Expr::EBlock(_), Expr::EBlock(_)) => {
-                let result = panic::catch_unwind(|| {
-                    self.apply(&env, vec![block.clone()]);
-                });
-                if result.is_err() {
-                    self.apply(&env, vec![catch.clone()]);
+                match panic::catch_unwind(|| self.apply(&env, vec![block.clone()])) {
+                    Ok(result) => result,
+                    Err(_) => {
+                        match self.exception.replace(None) {
+                            Some(e) => self.apply(&env, vec![catch.clone(), e]),
+                            None => self.apply(&env, vec![catch.clone()]),
+                        }
+                    }
                 }
             }
             (_, _) => panic!(),
         }
-        Expr::ENil
     }
 
     fn native_add(&self, env: &Expr) -> Expr {
@@ -203,7 +219,7 @@ impl Kurt {
     where
         F: FnMut(f64),
     {
-        match &self.loc(&env, "vals") {
+        match &self.loc_expr(&env, "vals") {
             Expr::EList(vec_ref) => {
                 for val in &vec_ref.borrow().exprs {
                     match val {

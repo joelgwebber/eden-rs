@@ -12,6 +12,8 @@ use gc::GcCellRef;
 use gc::GcCellRefMut;
 use gc::Trace;
 
+use super::Loc;
+
 // Expr represents both the AST and runtime state.
 // Parsing produces an expr graph, and evaluation updates that graph.
 #[derive(Trace, Finalize, PartialEq)]
@@ -39,32 +41,32 @@ impl RefUnwindSafe for Expr {}
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Assoc {
-    pub pos: (usize, usize),
+    pub loc: Loc,
     pub pairs: Vec<(Expr, Expr)>,
 }
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Dict {
-    pub pos: (usize, usize),
+    pub loc: Loc,
     pub map: HashMap<String, Expr>,
 }
 
-#[derive(Trace, Finalize, PartialEq)]
+#[derive(Trace, Finalize, PartialEq, Clone)]
 pub struct List {
-    pub pos: (usize, usize),
+    pub loc: Loc,
     pub exprs: Vec<Expr>,
 }
 
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Apply {
-    pub pos: (usize, usize),
+    pub loc: Loc,
     pub exprs: Vec<Expr>,
 }
 
 // State for a (| block) expr, including params and environment.
 #[derive(Trace, Finalize, PartialEq)]
 pub struct Block {
-    pub pos: (usize, usize),
+    pub loc: Loc,
     pub params: Vec<String>,
     pub expr: Expr,
     pub env: Expr,
@@ -125,6 +127,29 @@ impl<T: Trace> Clone for ERef<T> {
     #[inline]
     fn clone(&self) -> Self {
         ERef(self.0.clone())
+    }
+}
+
+impl Expr {
+    pub fn caller(&self) -> Option<Expr> {
+        match self {
+            Expr::EDict(dict_ref) => match (&*dict_ref.borrow()).map.get("caller") {
+                Some(caller) => Some(caller.clone()),
+                None => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub fn loc(&self) -> Option<Loc> {
+        match self {
+            Expr::EList(list_ref) => Some(list_ref.borrow().loc.clone()),
+            Expr::EAssoc(assoc_ref) => Some(assoc_ref.borrow().loc.clone()),
+            Expr::EDict(dict_ref) => Some(dict_ref.borrow().loc.clone()),
+            Expr::EBlock(block_ref) => Some(block_ref.borrow().loc.clone()),
+            Expr::EApply(apply_ref) => Some(apply_ref.borrow().loc.clone()),
+            _ => None,
+        }
     }
 }
 

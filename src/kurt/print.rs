@@ -46,7 +46,8 @@ impl fmt::Display for Expr {
                 write!(f, "(")?;
                 write_vec(f, &block.params)?;
                 write!(f, " | ")?;
-                block.expr.fmt(f)?;
+                // block.expr.fmt(f)?;
+                write!(f, "...")?;
                 write!(f, ")")
             }
 
@@ -84,8 +85,8 @@ fn write_pairs(f: &mut fmt::Formatter, m: &Vec<(Expr, Expr)>) -> fmt::Result {
     for (key, expr) in m {
         write!(f, "{} ", key)?;
         match expr {
-            // Expr::Dict(_) => { f.write_str("{...}"); () }
-            // Expr::List(_) => { f.write_str("[...]"); () }
+            Expr::EDict(_) => { f.write_str("{...}")?; () }
+            Expr::EList(_) => { f.write_str("[...]")?; () }
             _ => expr.fmt(f)?,
         }
         if i < m.len() - 1 {
@@ -103,8 +104,8 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Expr>) -> fmt::Result {
     for (name, expr) in m {
         write!(f, ":{} ", name)?;
         match expr {
-            // Expr::Dict(_) => { f.write_str("{...}"); () }
-            // Expr::List(_) => { f.write_str("[...]"); () }
+            Expr::EDict(_) => { f.write_str("{...}")?; () }
+            Expr::EList(_) => { f.write_str("[...]")?; () }
             _ => expr.fmt(f)?,
         }
         if i < m.len() - 1 {

@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::expr::{Dict, ERef, List};
+use crate::kurt::{Loc, expr::{Dict, ERef, List}};
 
 use super::{
     expr::{Block, Expr},
@@ -19,7 +19,7 @@ impl Kurt {
     pub fn apply(&self, env: &Expr, exprs: Vec<Expr>) -> Expr {
         if self.debug {
             let ls = Expr::EList(ERef::new(List {
-                pos: (0, 0),
+                loc: Loc::default(),
                 exprs: exprs.clone(),
             }));
             // println!("apply -- {} :: {}", env.clone(), ls);
@@ -69,7 +69,7 @@ impl Kurt {
                 // Capture self reference in block.
                 let block = &*blk_ref.borrow();
                 Expr::EBlock(ERef::new(Block {
-                    pos: block.pos,
+                    loc: block.loc.clone(),
                     params: block.params.clone(),
                     env: block.env.clone(),
                     expr: block.expr.clone(),
@@ -83,7 +83,7 @@ impl Kurt {
     fn invoke(&self, env: &Expr, block_expr: Expr, args: Vec<Expr>) -> Expr {
         if self.debug {
             let ls = Expr::EList(ERef::new(List {
-                pos: (0, 0),
+                loc: Loc::default(),
                 exprs: args.clone(),
             }));
             // println!("invoke -- {} :: {}", env.clone(), ls);
@@ -97,10 +97,7 @@ impl Kurt {
             for i in 0..args.len() {
                 frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
             }
-            let nf = Expr::EDict(ERef::new(Dict {
-                pos: (0, 0),
-                map: frame,
-            }));
+            let nf = Expr::EDict(ERef::new(Dict { loc: Loc::default(), map: frame }));
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
             panic!("tried to invoke with non-block expr {}", block_expr)
@@ -114,15 +111,19 @@ impl Kurt {
                 new_map.insert(key.clone(), expr.clone());
             }
         }
+        new_map.insert("caller".to_string(), env.clone());
         new_map.insert(
             "@".to_string(),
             if blk.slf != Expr::ENil {
                 blk.slf.clone()
             } else {
                 env.clone()
-            }
+            },
         );
         new_map.insert("^".to_string(), blk.env.clone());
-        Expr::EDict(ERef::new(Dict { pos: (0, 0), map: new_map }))
+        Expr::EDict(ERef::new(Dict {
+            loc: blk.loc.clone(),
+            map: new_map,
+        }))
     }
 }

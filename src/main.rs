@@ -10,8 +10,8 @@ extern crate pest_derive;
 fn main() {
     let src = fs::read_to_string("test.kurt").expect("cannot read file");
 
-    let mut kurt = Kurt::new();
-    println!("-> {}", kurt.eval_src(src.as_str()));
+    let kurt = Kurt::new();
+    println!("-> {}", kurt.eval_src("test.kurt", src.as_str()));
 
     // App::build()
     //     .insert_resource(Msaa { samples: 4 })

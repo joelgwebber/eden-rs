@@ -1,8 +1,15 @@
 (do [
     (def :caught false)
-    (try
-        (| not-a-thing)
-        (| set :caught true)
-    )
+    (def :func (blah |
+        (try
+            (| not-a-thing)
+            (e | do [
+                (log (e :message))
+                (log (e :stack))
+                (set :caught true)
+            ])
+        )
+    ))
+    (func 42)
     (expect true caught)
 ])
