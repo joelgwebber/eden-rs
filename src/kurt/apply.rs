@@ -56,7 +56,7 @@ impl Kurt {
                         }
                     }
 
-                    _ => panic!("apply allows no more than 2 arguments"),
+                    _ => self.throw(env, "apply allows no more than 2 arguments".to_string()),
                 };
                 self.maybe_wrap(first.clone(), result)
             }
@@ -100,7 +100,7 @@ impl Kurt {
             let nf = Expr::EDict(ERef::new(Dict { loc: Loc::default(), map: frame }));
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
-            panic!("tried to invoke with non-block expr {}", block_expr)
+            self.throw(env, format!("tried to invoke with non-block expr {}", block_expr))
         }
     }
 

@@ -70,8 +70,7 @@ impl Kurt {
                 let map = &mut dict_ref.borrow_mut().map;
                 map.insert(name.clone(), val.clone());
             }
-
-            _ => panic!(),
+            _ => self.throw(env, "def requires dict :id".to_string()),
         }
     }
 
@@ -84,8 +83,8 @@ impl Kurt {
                         let map = &mut dict_ref.borrow_mut().map;
                         map.insert(s.clone(), val.clone());
                     }
-                    Expr::ENil => panic!("{} not found", name),
-                    _ => panic!("set requires a dict"),
+                    Expr::ENil => self.throw(env, format!("{} not found", name)),
+                    _ => self.throw(env, format!("set requires a dict")),
                 }
             }
 
@@ -95,7 +94,7 @@ impl Kurt {
                 *expr = val.clone();
             }
 
-            (_, _) => panic!(),
+            (_, _) => self.throw(env, "set requires [dict id] or [list num]".to_string()),
         }
     }
 
@@ -112,7 +111,7 @@ impl Kurt {
                                 dict_ref.borrow().map.get(name).unwrap().clone()
                             }
                             Expr::ENil => self.throw(env, format!("'{}' not found", name)),
-                            _ => panic!("get requires a dict"),
+                            _ => self.throw(env, "get requires a dict".to_string()),
                         }
                     }
                 }
@@ -163,6 +162,7 @@ impl Kurt {
     }
 
     pub fn throw(&self, env: &Expr, msg: String) -> ! {
+        // TODO: There's gotta be a way to make this less shitty.
         let mut map = HashMap::<String, Expr>::new();
         map.insert("message".to_string(), Expr::EStr(msg));
         let mut stack = Vec::<Expr>::new();

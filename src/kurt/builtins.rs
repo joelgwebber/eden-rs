@@ -5,7 +5,7 @@ use std::{
 
 use velcro::{hash_map, vec_from};
 
-use crate::kurt::{Expr, Loc, expr::Dict};
+use crate::kurt::{expr::Dict, Expr, Loc};
 
 use super::{expr::Block, ERef, Kurt};
 
@@ -83,7 +83,7 @@ impl Kurt {
                 None => self.throw(&env, format!("missing local '{}' in {}", name, env)),
             }
         } else {
-            panic!("expected dict env, got '{}'", env)
+            self.throw(env, format!("expected dict env"))
         }
     }
 
@@ -95,7 +95,7 @@ impl Kurt {
                 None => None,
             }
         } else {
-            panic!("expected dict env, got '{}'", env)
+            self.throw(env, format!("expected dict env"))
         }
     }
 
@@ -103,7 +103,7 @@ impl Kurt {
         let expr = self.loc_expr(env, name);
         match &expr {
             Expr::EStr(s) => s.clone(),
-            _ => panic!(),
+            _ => self.throw(env, format!("expected str, got {}", expr)),
         }
     }
 
@@ -111,7 +111,7 @@ impl Kurt {
         let expr = self.loc_expr(env, name);
         match &expr {
             Expr::ENum(x) => *x,
-            _ => panic!(),
+            _ => self.throw(env, format!("expected num, got {}", expr)),
         }
     }
 
@@ -119,7 +119,7 @@ impl Kurt {
         let expr = self.loc_expr(env, name);
         match &expr {
             Expr::EBool(x) => *x,
-            _ => panic!(),
+            _ => self.throw(env, format!("expected bool, got {}", expr)),
         }
     }
 
@@ -127,7 +127,7 @@ impl Kurt {
         match self.loc_opt(env, name) {
             Some(expr) => match &expr {
                 Expr::ENum(x) => Some(*x),
-                _ => panic!(),
+                _ => self.throw(env, format!("expected num, got {}", expr)),
             },
             None => None,
         }
@@ -191,15 +191,13 @@ impl Kurt {
             (Expr::EBlock(_), Expr::EBlock(_)) => {
                 match panic::catch_unwind(|| self.apply(&env, vec![block.clone()])) {
                     Ok(result) => result,
-                    Err(_) => {
-                        match self.exception.replace(None) {
-                            Some(e) => self.apply(&env, vec![catch.clone(), e]),
-                            None => self.apply(&env, vec![catch.clone()]),
-                        }
-                    }
+                    Err(_) => match self.exception.replace(None) {
+                        Some(e) => self.apply(&env, vec![catch.clone(), e]),
+                        None => self.apply(&env, vec![catch.clone()]),
+                    },
                 }
             }
-            (_, _) => panic!(),
+            (_, _) => self.throw(env, "try requires body and catch blocks".to_string()),
         }
     }
 
@@ -224,11 +222,11 @@ impl Kurt {
                 for val in &vec_ref.borrow().exprs {
                     match val {
                         Expr::ENum(x) => func(*x),
-                        _ => panic!("+ requires numeric values"),
+                        _ => self.throw(env, "operator requires numeric values".to_string()),
                     }
                 }
             }
-            _ => panic!("expected vals list"),
+            _ => self.throw(env, "operator expected vals list".to_string()),
         }
     }
 

@@ -59,7 +59,7 @@ impl Kurt {
                     if let Expr::EId(s) = &key {
                         map.insert(s.clone(), self.eval(env, expr));
                     } else {
-                        panic!("expected id key, got {}", key_expr);
+                        self.throw(env, format!("expected id key, got {}", key_expr))
                     }
                 }
                 Expr::EDict(ERef::new(Dict {
@@ -94,7 +94,7 @@ impl Kurt {
             // Invoke native func.
             Expr::ENative(name) => match self.builtins.get(name) {
                 Some(f) => f(self, env.borrow()),
-                _ => panic!("unimplemented builtin '{}'", name),
+                _ => self.throw(env, format!("unimplemented builtin '{}'", name)),
             },
         }
     }
