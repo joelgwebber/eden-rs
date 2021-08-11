@@ -10,21 +10,6 @@ mod tests {
     };
 
     #[test]
-    fn access() {
-        kurt_test(
-            "inline test",
-            r#"
-            (do [
-                (def :list [42 54 69])
-                (log list.1)
-                (def :fn (| {:foo {:bar 42}}))
-                (log (fn).foo.bar)
-            ])
-        "#,
-        );
-    }
-
-    #[test]
     fn inline() {
         kurt_test(
             "inline test",

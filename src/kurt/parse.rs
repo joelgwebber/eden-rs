@@ -113,7 +113,7 @@ impl Kurt {
                     match inner.next() {
                         Some(right_rule) => {
                             let mut right = self.parse_value(file, right_rule);
-                            if let Expr::EId(_) = &right {
+                            if let Expr::EId(_) = right {
                                 right = Expr::EQuote(ERef::new(right));
                             }
                             left = Expr::EApply(ERef::new(Apply {

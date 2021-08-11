@@ -28,7 +28,6 @@ string = ${ "\"" ~ str_inner ~ "\"" }
 id_char = { !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "\\" | "|" | ".") ~ ANY }
 id = @{ id_char+ }
 
-access = { non_access ~ ("." ~ non_access)+ }
 prim = { number | string | boolean | nil }
 list = { "[" ~ expr* ~ "]" }
 pair = { expr ~ expr }
@@ -38,7 +37,10 @@ args = { id* ~ "|" }
 block = { "(" ~ args ~ expr* ~ ")" }
 quote = { ":" ~ expr }
 unquote = { "\\" ~ expr }
+
 non_access = { prim | id | list | dict | block | apply | quote | unquote }
+access = ${ non_access ~ ("." ~ non_access)+ }
+
 expr = { access | non_access }
 
 file = {
