@@ -10,6 +10,21 @@ mod tests {
     };
 
     #[test]
+    fn access() {
+        kurt_test(
+            "inline test",
+            r#"
+            (do [
+                (def :list [42 54 69])
+                (log list.1)
+                (def :fn (| {:foo {:bar 42}}))
+                (log (fn).foo.bar)
+            ])
+        "#,
+        );
+    }
+
+    #[test]
     fn inline() {
         kurt_test(
             "inline test",
@@ -80,7 +95,7 @@ mod tests {
         let expect = kurt.loc_expr(env, "expect");
         let expr = kurt.loc_expr(env, "expr");
         if !expr_eq(expect.clone(), expr.clone()) {
-            assert!(false, "expected {} : got {}", expect.clone(), expr.clone());
+            kurt.throw(env, format!("expected {} : got {}", expect.clone(), expr.clone()));
         }
         Expr::ENil
     }

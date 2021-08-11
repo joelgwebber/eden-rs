@@ -29,13 +29,13 @@
     })
     (expect "foo" (things :foo))
     (expect "bar" (things :bar))
-    -- (expect "bar" things:bar)    -- TODO: shorthand access
+    (expect "bar" things.bar)
 
     (def :list ["foo" "bar" "baz"])
     (expect "foo" (list 0))
     (expect "bar" (list 1))
     (expect "baz" (list 2))
-    -- (expect "baz" list:2)    -- TODO: shorthand access
+    (expect "baz" list.2)    -- TODO: shorthand access
 
     -- TODO: cross-referenced keys/vals in a single (def)
 

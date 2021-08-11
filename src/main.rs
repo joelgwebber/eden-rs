@@ -7,6 +7,9 @@ mod kurt;
 #[macro_use]
 extern crate pest_derive;
 
+#[macro_use]
+extern crate lazy_static;
+
 fn main() {
     let src = fs::read_to_string("test.kurt").expect("cannot read file");
 

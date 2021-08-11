@@ -25,11 +25,10 @@ char = {
 str_inner = @{ char* }
 string = ${ "\"" ~ str_inner ~ "\"" }
 
-sym_char = {
-  !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "\\" | "|") ~ ANY
-}
-id = @{ sym_char+ }
+id_char = { !(WHITESPACE | "[" | "]" | "{" | "}" | "(" | ")" | ":" | "\\" | "|" | ".") ~ ANY }
+id = @{ id_char+ }
 
+access = { non_access ~ ("." ~ non_access)+ }
 prim = { number | string | boolean | nil }
 list = { "[" ~ expr* ~ "]" }
 pair = { expr ~ expr }
@@ -39,7 +38,8 @@ args = { id* ~ "|" }
 block = { "(" ~ args ~ expr* ~ ")" }
 quote = { ":" ~ expr }
 unquote = { "\\" ~ expr }
-expr = { prim | id | list | dict | block | apply | quote | unquote }
+non_access = { prim | id | list | dict | block | apply | quote | unquote }
+expr = { access | non_access }
 
 file = {
     SOI ~

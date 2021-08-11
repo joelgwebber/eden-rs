@@ -198,6 +198,6 @@ impl Kurt {
             loc: Loc::default(),
             map: map,
         }))));
-        panic!("exception")
+        panic!("[exception]")
     }
 }

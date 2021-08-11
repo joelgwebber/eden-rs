@@ -106,6 +106,32 @@ impl Kurt {
                     .collect(),
             })),
 
+            Rule::access => {
+                let mut inner = expr.into_inner();
+                let mut left = self.parse_value(file, inner.next().unwrap());
+                loop {
+                    match inner.next() {
+                        Some(right_rule) => {
+                            let mut right = self.parse_value(file, right_rule);
+                            if let Expr::EId(_) = &right {
+                                right = Expr::EQuote(ERef::new(right));
+                            }
+                            left = Expr::EApply(ERef::new(Apply {
+                                loc: Loc {
+                                    file: file.to_string(),
+                                    name: String::default(),
+                                    pos: span.start_pos().line_col(),
+                                },
+                                exprs: vec![left, right],
+                            }));
+                        }
+                        None => return left,
+                    }
+                }
+            }
+
+            Rule::non_access => self.parse_value(file, expr.into_inner().next().unwrap()),
+
             Rule::number => Expr::ENum(expr.as_str().parse().unwrap()),
             Rule::boolean => Expr::EBool(expr.as_str().parse().unwrap()),
             Rule::string => Expr::EStr(expr.as_str().to_string()),

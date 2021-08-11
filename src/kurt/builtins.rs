@@ -44,7 +44,13 @@ impl Kurt {
         }));
 
         // Override panic handler to suppress automatic stack traces.
-        panic::set_hook(Box::new(|_| {}));
+        panic::set_hook(Box::new(|info| {
+            // Kind of a hack -- panics created by (throw) will contain the string [exception].
+            let s = format!("{}", info);
+            if !s.contains("[exception]") {
+                println!("{}", s);
+            }
+        }));
     }
 
     pub fn builtin(&self, name: &'static str, args: &Vec<String>) -> Expr {
