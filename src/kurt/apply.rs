@@ -93,10 +93,22 @@ impl Kurt {
         if let Expr::EBlock(block_ref) = block_expr.borrow() {
             let block = &*block_ref.borrow();
             let mut frame = HashMap::<String, Expr>::new();
-            // TODO: validate param/arg match.
             for i in 0..args.len() {
-                frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
+                let param = &block.params[i];
+                if param.ends_with("...") {
+                    // Handle rest params.
+                    let mut rest = Vec::<Expr>::new();
+                    for arg in &args[i..] {
+                        rest.push(self.eval(env, arg));
+                    }
+                    frame.insert(block.params[i].clone(), Expr::EList(ERef::new(List{loc: Loc::default(), exprs: rest})));
+                    break;
+                } else {
+                    frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
+                }
             }
+
+            // TODO: validate param/arg match.
             let nf = Expr::EDict(ERef::new(Dict { loc: Loc::default(), map: frame }));
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {

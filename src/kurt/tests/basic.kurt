@@ -1,4 +1,4 @@
-(do [
+(do
     -- Primitive types.
     (expect 42 42)
     (expect false false)
@@ -8,11 +8,11 @@
 
     -- def, set, get.
     (let { :foo 42 }
-        (| do [
+        (| do
             (expect 42 foo)
             (set :foo 54)
             (expect 54 foo)
-        ])
+        )
     )
 
     (def :foo 42)
@@ -57,6 +57,6 @@
     (def :outer 54)
     (let
         { :foo 42 }
-        (| expect 96 (+ [foo outer]))
+        (| expect 96 (+ foo outer))
     )
-])
+)

@@ -39,7 +39,7 @@ quote = { ":" ~ expr }
 unquote = { "\\" ~ expr }
 
 non_access = { prim | id | list | dict | block | apply | quote | unquote }
-access = ${ non_access ~ ("." ~ non_access)+ }
+access = { non_access ~ ("." ~ non_access)+ }
 
 expr = { access | non_access }
 

@@ -1,17 +1,17 @@
-(do [
+(do
     -- Object with fields.
     (def :obj {
         :foo 42
         :bar 54
     })
-    (expect 42 (obj :foo))
-    (expect 54 (obj :bar))
-    ((obj :set) :foo 44)
-    (expect 44 (obj :foo))
+    (expect 42 obj.foo)
+    (expect 54 obj.bar)
+    (obj.set :foo 44)
+    (expect 44 obj.foo)
 
     (def :foo [1 2 3])
     (expect 2 (foo 1))
-    ((foo :set) 1 42)
+    (foo.set 1 42)
     (expect 42 (foo 1))
 
     -- Object with method + self reference.
@@ -22,8 +22,8 @@
         })
         :meth (| @ :val)
     })
-    (def :thing ((Thing :new) 42))
-    (expect 42 ((thing :meth)))
+    (def :thing (Thing.new 42))
+    (expect 42 (thing.meth))
 
     -- Super/sub relationships.
     (def :Super {
@@ -34,18 +34,18 @@
     })
     (def :Sub {
         :^ Super
-        :new (| do [
+        :new (| do
             (def :self ((Super :new)))
-            ((self :set) :^ Sub)
-            ((self :def) :b 54)
+            (self.set :^ Sub)
+            (self.def :b 54)
             self
-        ])
+        )
     })
-    (def :sub ((Sub :new)))
-    (expect 42 (sub :a))
-    (expect 54 (sub :b))
+    (def :sub (Sub.new))
+    (expect 42 sub.a)
+    (expect 54 sub.b)
 
     -[ TODO
        - Explicit struct parent.
     ]-
-])
+)

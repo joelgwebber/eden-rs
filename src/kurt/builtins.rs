@@ -12,7 +12,7 @@ use super::{expr::Block, ERef, Kurt};
 impl Kurt {
     pub fn init_builtins(&mut self) {
         // Built-in functions.
-        self.add_builtin("do", &vec_from!["exprs"], Kurt::native_do);
+        self.add_builtin("do", &vec_from!["exprs..."], Kurt::native_do);
         self.add_builtin("def", &vec_from!["name", "value"], Kurt::native_def);
         self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
 
@@ -21,8 +21,8 @@ impl Kurt {
         self.add_builtin("try".into(), &vec_from!["block", "catch"], Kurt::native_try);
 
         self.add_builtin("=".into(), &vec_from!["x", "y"], Kurt::native_eq);
-        self.add_builtin("+".into(), &vec_from!["vals"], Kurt::native_add);
-        self.add_builtin("*".into(), &vec_from!["vals"], Kurt::native_mul);
+        self.add_builtin("+".into(), &vec_from!["vals..."], Kurt::native_add);
+        self.add_builtin("*".into(), &vec_from!["vals..."], Kurt::native_mul);
         self.add_builtin("-".into(), &vec_from!["x", "y"], Kurt::native_sub);
         self.add_builtin("/".into(), &vec_from!["x", "y"], Kurt::native_div);
 
@@ -140,7 +140,7 @@ impl Kurt {
     }
 
     fn native_do(&self, env: &Expr) -> Expr {
-        let exprs = self.loc_expr(&env, "exprs");
+        let exprs = self.loc_expr(&env, "exprs...");
         match &exprs {
             Expr::EList(vec_ref) => {
                 let mut last = Expr::ENil;
@@ -223,7 +223,7 @@ impl Kurt {
     where
         F: FnMut(f64),
     {
-        match &self.loc_expr(&env, "vals") {
+        match &self.loc_expr(&env, "vals...") {
             Expr::EList(vec_ref) => {
                 for val in &vec_ref.borrow().exprs {
                     match val {

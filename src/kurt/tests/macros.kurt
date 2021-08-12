@@ -1,8 +1,8 @@
-(do [
-    (def :infix (l | ((l 1) [(l 0) (l 2)])))
+(do
+    (def :infix (l | (l.1 l.0 l.2)))
     (expect 42 ((infix [40 + 2])))
 
-    (expect :(a 42) :(a \(+ [40 2])))
+    (expect :(a 42) :(a \(+ 40 2)))
 
     -- dict = dict
     (expect {:foo 42 :bar 54} {:foo 42 :bar 54})
@@ -15,4 +15,4 @@
        - apply component access
        - block component access
     ]-
-])
+)

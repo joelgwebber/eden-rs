@@ -1,17 +1,17 @@
-(do [
+(do
     -- add
-    (expect 44 (+ [42 2]))
-    (expect 46 (+ [42 2 2]))
+    (expect 44 (+ 42 2))
+    (expect 46 (+ 42 2 2))
 
-    -- -- sub
+    -- sub
     (expect 40 (- 42 2))
     (expect -42 (- 42))
 
     -- mul
-    (expect 42 (* [6 7]))
-    (expect 42 (* [2 3 7]))
+    (expect 42 (* 6 7))
+    (expect 42 (* 2 3 7))
 
     -- div
     (expect 42 (/ 84 2))
     (expect 0.5 (/ 2))
-])
+)
