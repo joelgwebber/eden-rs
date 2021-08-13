@@ -14,7 +14,7 @@ impl Kurt {
     // Evaluates an expr within the given environment.
     pub fn eval(&self, env: &Expr, expr: &Expr) -> Expr {
         if self.debug {
-            // println!("eval -- {} :: {}", env.borrow(), expr.borrow());
+            // println!("eval -- {} :: {}", env, expr);
             println!("eval :: {}", expr);
         }
 
@@ -99,7 +99,7 @@ impl Kurt {
         }
     }
 
-    pub fn quote(&self, env: &Expr, expr: &Expr) -> Expr {
+    fn quote(&self, env: &Expr, expr: &Expr) -> Expr {
         match &expr {
             Expr::EList(list_ref) => {
                 let list = &*list_ref.borrow();

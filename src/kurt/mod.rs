@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fs;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use gc::Finalize;
@@ -10,14 +11,12 @@ use crate::kurt::expr::List;
 
 use self::expr::{Dict, ERef, Expr};
 
-pub mod apply;
-pub mod builtins;
-pub mod eq;
-pub mod eval;
-pub mod expr;
-pub mod parse;
-pub mod print;
-
+mod apply;
+mod eval;
+mod expr;
+mod lib;
+mod parse;
+mod print;
 mod tests;
 
 pub struct Kurt {
@@ -25,6 +24,7 @@ pub struct Kurt {
     debug: bool,
 
     builtins: HashMap<&'static str, fn(&Kurt, &Expr) -> Expr>,
+    def_num: Expr,
     def_dict: Expr,
     def_list: Expr,
 
@@ -50,12 +50,13 @@ impl Kurt {
                 map: HashMap::new(),
                 loc: Loc::default(),
             })),
+            def_num: Expr::ENil,
             def_dict: Expr::ENil,
             def_list: Expr::ENil,
             debug: false,
             exception: RefCell::new(None),
         };
-        kurt.init_builtins();
+        kurt.init_lib();
         kurt
     }
 
@@ -128,6 +129,7 @@ impl Kurt {
             }
 
             (Expr::EList(_), Expr::EId(name)) => self.get(&self.def_list, &Expr::EId(name.clone())),
+            (Expr::ENum(_), Expr::EId(name)) => self.get(&self.def_num, &Expr::EId(name.clone())),
 
             (_, _) => name.clone(),
         }
@@ -199,5 +201,19 @@ impl Kurt {
             map: map,
         }))));
         panic!("[exception]")
+    }
+
+    pub fn test_file(filename: &str) {
+        Kurt::test(
+            filename,
+            fs::read_to_string(filename)
+                .expect("cannot read test file")
+                .as_str(),
+        )
+    }
+
+    pub fn test(name: &str, src: &str) {
+        println!("-- {}", name);
+        Kurt::new().eval_src(name, src);
     }
 }

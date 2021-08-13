@@ -14,4 +14,8 @@
     -- div
     (expect 42 (/ 84 2))
     (expect 0.5 (/ 2))
+
+    -- funcs
+    (expect 1 (cos 0))
+    (expect 0 (sin 0))
 )
