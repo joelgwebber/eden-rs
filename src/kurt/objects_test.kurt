@@ -56,4 +56,10 @@
     (Object.set-all {:a 54 :b 42})
     (expect 54 (Object:a))
     (expect 42 (Object:b))
+
+    (def :Thing2 {
+        :with "something"
+    })
+    (expect true (Thing2.? :with))
+    (expect false (Thing2.? :without))
 )

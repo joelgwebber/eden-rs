@@ -11,21 +11,21 @@
         :index {}
 
         :init (| do
-            (add (Player:new))
-            (add (Enemy:new))
+            (add (Player.new))
+            (add (Enemy.new))
             (tick)
         )
 
         :tick (| do
-            (@:index:located:for-each (_ id | ((@:ents id):update)))
-            (@:index:rendered:for-each (_ id | ((@:ents id):render)))
+            (@.index.located.for-each (_ id | ((@.ents id).update)))
+            (@.index.rendered.for-each (_ id | ((@.ents id).render)))
         )
 
         :add (ent | do
-            (@:ents:set ent:id ent)
-            (ent:for-each (key comp |
-                (if (World:? :index) (World:set :index []))
-                ((World:index key):push ent:id)
+            (@:ents.set ent.id ent)
+            (ent.for-each (key comp |
+                (if (World.? :index) (World.set :index []))
+                ((World.index key).push ent.id)
             ))
         )
     })
@@ -34,9 +34,9 @@
         :next-id 1
 
         :new (comps | do
-            (def :@ { :id Entity:next-id })
-            (Entity:set :next-id (+ Entity:next-id 1))
-            (@:set comps)
+            (def :@ { :id Entity.next-id })
+            (Entity.set :next-id (+ Entity.next-id 1))
+            (@.set comps)
             @
         )
     })
@@ -81,8 +81,8 @@
 
     (def :Enemy {
         :new (| (Entity:new {
-            Located:id (Located:new 10 10 0)
-            Rendered:id (Rendered:new "enemy.png")
+            Located.id (Located.new 10 10 0)
+            Rendered.id (Rendered.new "enemy.png")
             :enemy {
                 :^ impl
                 :name "enemy"
@@ -97,8 +97,8 @@
 
     (def :Player {
         :new (| (Entity:new {
-            Located:id (Located:new 0 0 0)
-            Rendered:id (Rendered:new "player.png")
+            Located.id (Located.new 0 0 0)
+            Rendered.id (Rendered.new "player.png")
             :player {
                 :^ -impl
                 :name "player"

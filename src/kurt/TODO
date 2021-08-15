@@ -4,6 +4,5 @@
   https://clojure.org/guides/destructuring
 
 - Builtins:
-  ?
   for-each
   push/pop

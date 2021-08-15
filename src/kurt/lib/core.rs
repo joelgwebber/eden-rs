@@ -21,6 +21,7 @@ impl Kurt {
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
         self.add_builtin("log", &vec_from!["msg"], Kurt::native_log);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
+        self.add_builtin("?", &vec_from!["id"], Kurt::native_exists);
 
         self.def_dict = Expr::EDict(ERef::new(Dict {
             loc: Loc::default(),
@@ -29,6 +30,7 @@ impl Kurt {
                 "set-all".into(): self.builtin("set-all", &vec_from!["values"]),
                 "def".into(): self.builtin("def", &vec_from!["name", "value"]),
                 "def-all".into(): self.builtin("def-all", &vec_from!["values"]),
+                "?".into(): self.builtin("?", &vec_from!["id"]),
             },
         }));
         self.def_list = Expr::EDict(ERef::new(Dict {
@@ -73,7 +75,7 @@ impl Kurt {
 
         name_block(&name, &value);
         self.def(&this, &name, &value);
-        Expr::ENil
+        this
     }
 
     fn native_def_all(&self, env: &Expr) -> Expr {
@@ -87,7 +89,7 @@ impl Kurt {
                     name_block(&name_expr, &value);
                     self.def(&this, &name_expr, &value);
                 }
-                Expr::ENil
+                this
             }
             _ => self.throw(env, "def_all takes dict".into()),
         }
@@ -100,7 +102,7 @@ impl Kurt {
 
         name_block(&name, &value);
         self.set(&this, &name, &value);
-        env.clone()
+        this
     }
 
     fn native_set_all(&self, env: &Expr) -> Expr {
@@ -114,7 +116,7 @@ impl Kurt {
                     name_block(&name_expr, &value);
                     self.def(&this, &name_expr, &value);
                 }
-                Expr::ENil
+                this
             }
             _ => self.throw(env, "def_all takes dict".into()),
         }
@@ -149,6 +151,20 @@ impl Kurt {
             kurt.throw(env, format!("expected {} : got {}", expect.clone(), expr.clone()));
         }
         Expr::ENil
+    }
+
+    fn native_exists(kurt: &Kurt, env: &Expr) -> Expr {
+        let this =kurt.loc_expr(env, "@");
+        let id = kurt.loc_expr(env, "id");
+        match &id {
+            Expr::EId(name) => {
+                match kurt.find_scope(&this, &name) {
+                    Some(_) => Expr::EBool(true),
+                    _ => Expr::EBool(false),
+                }
+            }
+            _ => Expr::EBool(false),
+        }
     }
 }
 

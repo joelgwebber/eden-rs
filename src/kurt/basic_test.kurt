@@ -65,4 +65,7 @@
     (set-all {:a 54 :b 42})
     (expect 54 a)
     (expect 42 b)
+
+    (expect true (? :a))
+    (expect false (? :not-a thing))
 )

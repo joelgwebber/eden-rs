@@ -78,14 +78,13 @@ impl Kurt {
     pub fn set(&self, env: &Expr, name: &Expr, val: &Expr) {
         match (env, name) {
             (Expr::EDict(_), Expr::EId(s)) => {
-                let target = self.find_named(env, s);
+                let target = self.find_scope(env, s);
                 match &target {
-                    Expr::EDict(dict_ref) => {
+                    Some(Expr::EDict(dict_ref)) => {
                         let map = &mut dict_ref.borrow_mut().map;
                         map.insert(s.clone(), val.clone());
                     }
-                    Expr::ENil => self.throw(env, format!("{} not found", name)),
-                    _ => self.throw(env, format!("set requires a dict")),
+                    _ => self.throw(env, format!("{} not found", name)),
                 }
             }
 
@@ -106,13 +105,12 @@ impl Kurt {
                     // Special case: env refers to the current environment.
                     "env" => env.clone(),
                     _ => {
-                        let target = self.find_named(env, name);
+                        let target = self.find_scope(env, name);
                         match &target {
-                            Expr::EDict(dict_ref) => {
+                            Some(Expr::EDict(dict_ref)) => {
                                 dict_ref.borrow().map.get(name).unwrap().clone()
                             }
-                            Expr::ENil => self.throw(env, format!("'{}' not found", name)),
-                            _ => self.throw(env, "get requires a dict".to_string()),
+                            _ => self.throw(env, format!("'{}' not found", name)),
                         }
                     }
                 }
@@ -135,23 +133,23 @@ impl Kurt {
         }
     }
 
-    fn find_named(&self, target: &Expr, name: &String) -> Expr {
+    pub fn find_scope(&self, target: &Expr, name: &String) -> Option<Expr> {
         match target {
             // Check current dict.
             Expr::EDict(dict_ref) => {
                 if dict_ref.borrow().map.contains_key(name) {
-                    return target.clone();
+                    return Some(target.clone())
                 }
 
                 // Check parent.
                 match dict_ref.borrow().map.get("^") {
-                    Some(next) => self.find_named(next, name),
+                    Some(next) => self.find_scope(next, name),
                     None => match &self.def_dict {
                         Expr::EDict(def_map_ref) => {
                             if def_map_ref.borrow().map.contains_key(name) {
-                                self.def_dict.clone()
+                                Some(self.def_dict.clone())
                             } else {
-                                Expr::ENil
+                                None
                             }
                         }
                         _ => unreachable!(),
@@ -159,7 +157,7 @@ impl Kurt {
                 }
             }
 
-            _ => Expr::ENil,
+            _ => None,
         }
     }
 
