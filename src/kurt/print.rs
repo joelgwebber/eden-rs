@@ -1,8 +1,14 @@
-use super::Expr;
+use super::{Expr, expr::Exprs};
 use std::{
     collections::HashMap,
     fmt::{self, Display},
 };
+
+impl fmt::Display for Exprs {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write_vec(f, &self.0)
+    }
+}
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -85,8 +91,14 @@ fn write_pairs(f: &mut fmt::Formatter, m: &Vec<(Expr, Expr)>) -> fmt::Result {
     for (key, expr) in m {
         write!(f, "{} ", key)?;
         match expr {
-            Expr::EDict(_) => { f.write_str("{...}")?; () }
-            Expr::EList(_) => { f.write_str("[...]")?; () }
+            Expr::EDict(_) => {
+                f.write_str("{...}")?;
+                ()
+            }
+            Expr::EList(_) => {
+                f.write_str("[...]")?;
+                ()
+            }
             _ => expr.fmt(f)?,
         }
         if i < m.len() - 1 {
@@ -104,8 +116,8 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Expr>) -> fmt::Result {
     for (name, expr) in m {
         write!(f, ":{} ", name)?;
         match expr {
-            Expr::EDict(_) => { f.write_str("{...}")?; () }
-            Expr::EList(_) => { f.write_str("[...]")?; () }
+            // Expr::EDict(_) => { f.write_str("{...}")?; () }
+            // Expr::EList(_) => { f.write_str("[...]")?; () }
             _ => expr.fmt(f)?,
         }
         if i < m.len() - 1 {

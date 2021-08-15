@@ -1,6 +1,9 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::{Loc, expr::{Dict, ERef, List}};
+use crate::kurt::{
+    expr::{Dict, ERef, Exprs, List},
+    Loc,
+};
 
 use super::{
     expr::{Block, Expr},
@@ -56,7 +59,10 @@ impl Kurt {
                         }
                     }
 
-                    _ => self.throw(env, "apply allows no more than 2 arguments".to_string()),
+                    _ => self.throw(
+                        env,
+                        format!("apply allows no more than 2 arguments: {}", Exprs(exprs)),
+                    ),
                 };
                 self.maybe_wrap(first.clone(), result)
             }
@@ -101,7 +107,13 @@ impl Kurt {
                     for arg in &args[i..] {
                         rest.push(self.eval(env, arg));
                     }
-                    frame.insert(block.params[i].clone(), Expr::EList(ERef::new(List{loc: Loc::default(), exprs: rest})));
+                    frame.insert(
+                        block.params[i].clone(),
+                        Expr::EList(ERef::new(List {
+                            loc: Loc::default(),
+                            exprs: rest,
+                        })),
+                    );
                     break;
                 } else {
                     frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
@@ -109,10 +121,16 @@ impl Kurt {
             }
 
             // TODO: validate param/arg match.
-            let nf = Expr::EDict(ERef::new(Dict { loc: Loc::default(), map: frame }));
+            let nf = Expr::EDict(ERef::new(Dict {
+                loc: Loc::default(),
+                map: frame,
+            }));
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
-            self.throw(env, format!("tried to invoke with non-block expr {}", block_expr))
+            self.throw(
+                env,
+                format!("tried to invoke with non-block expr {}", block_expr),
+            )
         }
     }
 

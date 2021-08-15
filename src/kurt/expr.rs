@@ -35,6 +35,9 @@ pub enum Expr {
     EApply(ERef<Apply>),
 }
 
+#[derive(Trace, Finalize, PartialEq, Clone)]
+pub struct Exprs(pub Vec<Expr>);
+
 // Needed for the use of expressions in the panic handler.
 impl UnwindSafe for Expr {}
 impl RefUnwindSafe for Expr {}

@@ -37,8 +37,6 @@
     (expect "baz" (list 2))
     (expect "baz" list.2)
 
-    -- TODO: cross-referenced keys/vals in a single (def)
-
     -- various shorthand access cases
     (def :list [42 54 69])
     (def :idx 2)
@@ -59,4 +57,12 @@
         { :foo 42 }
         (| expect 96 (+ foo outer))
     )
+
+    -- set/def-all
+    (def-all {:a 42 :b 54})
+    (expect 42 a)
+    (expect 54 b)
+    (set-all {:a 54 :b 42})
+    (expect 54 a)
+    (expect 42 b)
 )

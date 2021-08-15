@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fs;
+use std::{fs, panic};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use gc::Finalize;
@@ -214,6 +214,16 @@ impl Kurt {
 
     pub fn test(name: &str, src: &str) {
         println!("-- {}", name);
-        Kurt::new().eval_src(name, src);
+        let kurt = Kurt::new();
+
+        match panic::catch_unwind(|| kurt.eval_src(name, src)) {
+            Ok(_) => (),
+            Err(_) => match kurt.exception.replace(None) {
+                Some(expr) => {
+                    println!("FAIL: {}", expr);
+                }
+                None => (),
+            },
+        }
     }
 }

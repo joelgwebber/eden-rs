@@ -1,3 +1,6 @@
+-[ TODO
+    - Explicit struct parent.
+]-
 (do
     -- Object with fields.
     (def :obj {
@@ -45,7 +48,12 @@
     (expect 42 sub.a)
     (expect 54 sub.b)
 
-    -[ TODO
-       - Explicit struct parent.
-    ]-
+    -- def/set-all
+    (def :Object {})
+    (Object.def-all {:a 42 :b 54}) -- TODO: Why is access failing?
+    (expect 42 (Object:a))
+    (expect 54 (Object:b))
+    (Object.set-all {:a 54 :b 42})
+    (expect 54 (Object:a))
+    (expect 42 (Object:b))
 )

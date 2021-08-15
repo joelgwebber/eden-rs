@@ -8,10 +8,11 @@ mod kurt;
 extern crate pest_derive;
 
 fn main() {
-    let src = fs::read_to_string("test.kurt").expect("cannot read file");
+    const MAIN: &str = "./src/eden.kurt";
+    let src = fs::read_to_string(MAIN).expect("cannot read file");
 
     let kurt = Kurt::new();
-    println!("-> {}", kurt.eval_src("test.kurt", src.as_str()));
+    kurt.eval_src(MAIN, src.as_str());
 
     // App::build()
     //     .insert_resource(Msaa { samples: 4 })

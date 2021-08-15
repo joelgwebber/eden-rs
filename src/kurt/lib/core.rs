@@ -14,8 +14,10 @@ impl Kurt {
         self.add_builtin("=", &vec_from!["x", "y"], Kurt::native_eq);
         self.add_builtin("do", &vec_from!["exprs..."], Kurt::native_do);
         self.add_builtin("def", &vec_from!["name", "value"], Kurt::native_def);
+        self.add_builtin("def-all", &vec_from!["values"], Kurt::native_def_all);
         self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
         self.add_builtin("set", &vec_from!["name", "value"], Kurt::native_set);
+        self.add_builtin("set-all", &vec_from!["values"], Kurt::native_set_all);
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
         self.add_builtin("log", &vec_from!["msg"], Kurt::native_log);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
@@ -24,7 +26,9 @@ impl Kurt {
             loc: Loc::default(),
             map: hash_map! {
                 "set".into(): self.builtin("set", &vec_from!["name", "value"]),
+                "set-all".into(): self.builtin("set-all", &vec_from!["values"]),
                 "def".into(): self.builtin("def", &vec_from!["name", "value"]),
+                "def-all".into(): self.builtin("def-all", &vec_from!["values"]),
             },
         }));
         self.def_list = Expr::EDict(ERef::new(Dict {
@@ -67,25 +71,53 @@ impl Kurt {
         let name = self.loc_expr(&env, "name");
         let value = self.loc_expr(&env, "value");
 
-        // Kind of a hack -- assign block names in (def ...)
-        match (&name, &value) {
-            (Expr::EId(id), Expr::EBlock(block_ref)) => {
-                let block = &mut *block_ref.borrow_mut();
-                block.loc.name = id.clone();
-            }
-            (_, _) => (),
-        }
-
+        name_block(&name, &value);
         self.def(&this, &name, &value);
         Expr::ENil
+    }
+
+    fn native_def_all(&self, env: &Expr) -> Expr {
+        let this = self.loc_expr(&env, "@");
+        let values = self.loc_expr(&env, "values");
+        match &values {
+            Expr::EDict(dict_ref) => {
+                let dict = &*dict_ref.borrow();
+                for (name, value) in &dict.map {
+                    let name_expr = Expr::EId(name.into());
+                    name_block(&name_expr, &value);
+                    self.def(&this, &name_expr, &value);
+                }
+                Expr::ENil
+            }
+            _ => self.throw(env, "def_all takes dict".into()),
+        }
     }
 
     fn native_set(&self, env: &Expr) -> Expr {
         let this = self.loc_expr(&env, "@");
         let name = self.loc_expr(&env, "name");
         let value = self.loc_expr(&env, "value");
+
+        name_block(&name, &value);
         self.set(&this, &name, &value);
         env.clone()
+    }
+
+    fn native_set_all(&self, env: &Expr) -> Expr {
+        let this = self.loc_expr(&env, "@");
+        let values = self.loc_expr(&env, "values");
+        match &values {
+            Expr::EDict(dict_ref) => {
+                let dict = &*dict_ref.borrow();
+                for (name, value) in &dict.map {
+                    let name_expr = Expr::EId(name.into());
+                    name_block(&name_expr, &value);
+                    self.def(&this, &name_expr, &value);
+                }
+                Expr::ENil
+            }
+            _ => self.throw(env, "def_all takes dict".into()),
+        }
     }
 
     fn native_log(&self, env: &Expr) -> Expr {
@@ -117,5 +149,16 @@ impl Kurt {
             kurt.throw(env, format!("expected {} : got {}", expect.clone(), expr.clone()));
         }
         Expr::ENil
+    }
+}
+
+// Kind of a hack -- assign block names in (def ...)
+fn name_block(name: &Expr, value: &Expr) {
+    match (name, value) {
+        (Expr::EId(id), Expr::EBlock(block_ref)) => {
+            let block = &mut *block_ref.borrow_mut();
+            block.loc.name = id.clone();
+        }
+        (_, _) => (),
     }
 }
