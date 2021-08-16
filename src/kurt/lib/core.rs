@@ -34,11 +34,14 @@ impl Kurt {
                 "?".into(): self.builtin("?", &vec_from!["id"]),
             },
         }));
-        self.def_list = Expr::EDict(ERef::new(Dict {
-            loc: Loc::default(),
-            map: hash_map! {
-                "set".into(): self.builtin("set", &vec_from!["name", "value"]),
-            },
+
+        // Override panic handler to suppress automatic stack traces.
+        panic::set_hook(Box::new(|info| {
+            // Kind of a hack -- panics created by (throw) will contain the string [exception].
+            let s = format!("{}", info);
+            if !s.contains("[exception]") {
+                println!("{}", s);
+            }
         }));
     }
 
@@ -160,9 +163,9 @@ impl Kurt {
     fn native_test(&self, env: &Expr) -> Expr {
         let name = self.loc_str(env, "name");
         let expr = self.loc_expr(env, "expr");
-        print!("-[ {}", name);
+        println!("-[ {} ]-", name);
         self.apply(&env, vec![expr.clone()]);
-        println!(" ]-");
+        println!();
         Expr::ENil
     }
 

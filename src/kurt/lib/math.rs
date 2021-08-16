@@ -1,5 +1,3 @@
-use std::panic::{self};
-
 use velcro::{hash_map, vec_from};
 
 use crate::kurt::{expr::Dict, Expr, Loc};
@@ -21,15 +19,6 @@ impl Kurt {
         self.def_num = Expr::EDict(ERef::new(Dict {
             loc: Loc::default(),
             map: hash_map! {},
-        }));
-
-        // Override panic handler to suppress automatic stack traces.
-        panic::set_hook(Box::new(|info| {
-            // Kind of a hack -- panics created by (throw) will contain the string [exception].
-            let s = format!("{}", info);
-            if !s.contains("[exception]") {
-                println!("{}", s);
-            }
         }));
     }
 

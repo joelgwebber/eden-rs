@@ -1,7 +1,4 @@
-  destructuring lists
-  destructuring dicts? def-all handles this.
-  https://clojure.org/guides/destructuring
+- Dict:for-each
 
-- Builtins:
-  for-each
-  push/pop
+- destructuring lists
+    https://clojure.org/guides/destructuring

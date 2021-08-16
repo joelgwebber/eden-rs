@@ -91,7 +91,6 @@
     ))
 
     (test "close over var" (| do
-        -- close over var
         (def :outer 42)
         (def :fn3 (x | + x outer))
         (expect 44 (fn3 2))
@@ -112,21 +111,15 @@
     ))
 
     (test "macro-ish things" (| do
+        -- TODO: Make ellipsis args work.
         (def :infix (l | (l.1 l.0 l.2)))
         (expect 42 ((infix [40 + 2])))
 
+        -- TODO: More separate tests for [un]quoting.
         (expect :(a 42) :(a \(+ 40 2)))
 
-        -- dict = dict
-        (expect {:foo 42 :bar 54} {:foo 42 :bar 54})
-        -- assoc = assoc
-        (expect :{:foo 42 :bar 54} :{:foo 42 :bar 54})
-        -- dict != assoc
-        (expect true (not (= {:foo 42 :bar 54} :{:foo 42 :bar 54})))
-
-        -[ TODO:
-        - apply component access
-        - block component access
-        ]-
+        -- TODO:
+        -- apply component access
+        -- block component access
     ))
 )

@@ -5,12 +5,14 @@ use super::{
 
 mod core;
 mod math;
+mod list;
 mod eq;
 
 impl Kurt {
     pub fn init_lib(&mut self) {
         self.init_core();
         self.init_math();
+        self.init_list();
     }
 
     pub fn builtin(&self, name: &'static str, args: &Vec<String>) -> Expr {
