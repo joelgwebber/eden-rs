@@ -1,10 +1,3 @@
--[
-    TODO:
-    - ? builtin
-    - for-each
-    - push/pop
-]-
-
 (do
     (def :World {
         :ents {}

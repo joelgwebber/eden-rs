@@ -135,3 +135,12 @@ pub fn expr_eq(_a: Expr, _b: Expr) -> bool {
         _ => false,
     }
 }
+
+mod tests {
+    use crate::kurt::Kurt;
+
+    #[test]
+    fn eq() {
+        Kurt::test_file("src/kurt/lib/eq_test.kurt");
+    }
+}

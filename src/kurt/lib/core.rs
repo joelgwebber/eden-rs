@@ -18,10 +18,11 @@ impl Kurt {
         self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
         self.add_builtin("set", &vec_from!["name", "value"], Kurt::native_set);
         self.add_builtin("set-all", &vec_from!["values"], Kurt::native_set_all);
+        self.add_builtin("?", &vec_from!["id"], Kurt::native_exists);
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
         self.add_builtin("log", &vec_from!["msg"], Kurt::native_log);
+        self.add_builtin("test", &vec_from!["name", "expr"], Kurt::native_test);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
-        self.add_builtin("?", &vec_from!["id"], Kurt::native_exists);
 
         self.def_dict = Expr::EDict(ERef::new(Dict {
             loc: Loc::default(),
@@ -122,6 +123,18 @@ impl Kurt {
         }
     }
 
+    fn native_exists(kurt: &Kurt, env: &Expr) -> Expr {
+        let this = kurt.loc_expr(env, "@");
+        let id = kurt.loc_expr(env, "id");
+        match &id {
+            Expr::EId(name) => match kurt.find_scope(&this, &name) {
+                Some(_) => Expr::EBool(true),
+                _ => Expr::EBool(false),
+            },
+            _ => Expr::EBool(false),
+        }
+    }
+
     fn native_log(&self, env: &Expr) -> Expr {
         println!("{}", self.loc_expr(&env, "msg"));
         Expr::ENil
@@ -144,27 +157,25 @@ impl Kurt {
         }
     }
 
-    fn native_expect(kurt: &Kurt, env: &Expr) -> Expr {
-        let expect = kurt.loc_expr(env, "expect");
-        let expr = kurt.loc_expr(env, "expr");
-        if !expr_eq(expect.clone(), expr.clone()) {
-            kurt.throw(env, format!("expected {} : got {}", expect.clone(), expr.clone()));
-        }
+    fn native_test(&self, env: &Expr) -> Expr {
+        let name = self.loc_str(env, "name");
+        let expr = self.loc_expr(env, "expr");
+        print!("-[ {}", name);
+        self.apply(&env, vec![expr.clone()]);
+        println!(" ]-");
         Expr::ENil
     }
 
-    fn native_exists(kurt: &Kurt, env: &Expr) -> Expr {
-        let this =kurt.loc_expr(env, "@");
-        let id = kurt.loc_expr(env, "id");
-        match &id {
-            Expr::EId(name) => {
-                match kurt.find_scope(&this, &name) {
-                    Some(_) => Expr::EBool(true),
-                    _ => Expr::EBool(false),
-                }
-            }
-            _ => Expr::EBool(false),
+    fn native_expect(&self, env: &Expr) -> Expr {
+        let expect = self.loc_expr(env, "expect");
+        let expr = self.loc_expr(env, "expr");
+        if !expr_eq(expect.clone(), expr.clone()) {
+            self.throw(
+                env,
+                format!("expected {} : got {}", expect.clone(), expr.clone()),
+            );
         }
+        Expr::ENil
     }
 }
 
@@ -176,5 +187,20 @@ fn name_block(name: &Expr, value: &Expr) {
             block.loc.name = id.clone();
         }
         (_, _) => (),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::kurt::Kurt;
+
+    #[test]
+    fn core() {
+        Kurt::test_file("src/kurt/lib/core_test.kurt");
+    }
+
+    #[test]
+    fn core_obj() {
+        Kurt::test_file("src/kurt/lib/core_obj_test.kurt");
     }
 }

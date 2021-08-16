@@ -6,7 +6,6 @@ use super::{
 mod core;
 mod math;
 mod eq;
-mod tests;
 
 impl Kurt {
     pub fn init_lib(&mut self) {

@@ -93,3 +93,13 @@ impl Kurt {
         Expr::EBool(!x)
     }
 }
+
+mod tests {
+    use crate::kurt::Kurt;
+
+    #[test]
+    fn math() {
+        Kurt::test_file("src/kurt/lib/math_test.kurt");
+    }
+}
+

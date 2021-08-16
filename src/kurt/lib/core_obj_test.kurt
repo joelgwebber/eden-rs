@@ -1,0 +1,73 @@
+-[ TODO
+    - Explicit struct parent.
+]-
+(do
+    (test "object with fields" (| do
+        (def :obj {
+            :foo 42
+            :bar 54
+        })
+        (expect 42 obj.foo)
+        (expect 54 obj.bar)
+        (obj.set :foo 44)
+        (expect 44 obj.foo)
+    ))
+
+    (test "list access" (| do
+        (def :foo [1 2 3])
+        (expect 2 (foo 1))
+        (foo.set 1 42)
+        (expect 42 (foo 1))
+    ))
+
+    (test "object with method + self reference" (| do
+        (def :Thing {
+            :new (val | {
+                :^ Thing
+                :val val
+            })
+            :meth (| @ :val)
+        })
+        (def :thing (Thing.new 42))
+        (expect 42 (thing.meth))
+    ))
+
+    (test "super/sub relationships" (| do
+        (def :Super {
+            :new (| {
+                :^ Super
+                :a 42
+            })
+        })
+        (def :Sub {
+            :^ Super
+            :new (| do
+                (def :self ((Super :new)))
+                (self.set :^ Sub)
+                (self.def :b 54)
+                self
+            )
+        })
+        (def :sub (Sub.new))
+        (expect 42 sub.a)
+        (expect 54 sub.b)
+    ))
+
+    (test "def/set-all" (| do
+        (def :Object {})
+        (Object.def-all {:a 42 :b 54})
+        (expect 42 (Object:a))
+        (expect 54 (Object:b))
+        (Object.set-all {:a 54 :b 42})
+        (expect 54 (Object:a))
+        (expect 42 (Object:b))
+    ))
+
+    (test "exists" (| do
+        (def :Thing2 {
+            :with "something"
+        })
+        (expect true (Thing2.? :with))
+        (expect false (Thing2.? :without))
+    ))
+)

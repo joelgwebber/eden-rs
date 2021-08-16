@@ -17,7 +17,6 @@ mod expr;
 mod lib;
 mod parse;
 mod print;
-mod tests;
 
 pub struct Kurt {
     pub root: Expr,
