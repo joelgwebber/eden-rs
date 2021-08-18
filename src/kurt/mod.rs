@@ -63,10 +63,10 @@ impl Kurt {
         kurt.eval_file(filename);
     }
 
-    pub fn eval_src(&self, name: &str, src: &str) -> Expr {
+    pub fn eval_src(&self, env: &Expr, name: &str, src: &str) -> Expr {
         match panic::catch_unwind(|| {
             let expr = self.parse(name.into(), src.into());
-            self.eval(&self.root.clone(), &expr)
+            self.eval(env, &expr)
         }) {
             Ok(expr) => expr,
             Err(_) => match self.exception.replace(None) {
@@ -81,6 +81,7 @@ impl Kurt {
 
     pub fn eval_file(&self, filename: &str) {
         self.eval_src(
+            &self.root,
             filename,
             fs::read_to_string(filename)
                 .expect("cannot read test file")

@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::kurt::expr::{_app, _id, _qid};
-use crate::kurt::{Kurt};
+use crate::kurt::Kurt;
 
 mod kurt;
 
