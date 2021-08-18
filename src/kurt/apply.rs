@@ -1,12 +1,9 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::kurt::{
-    expr::{Dict, ERef, Exprs, List},
-    Loc,
-};
+use crate::kurt::expr::{Dict, ERef, Exprs, _dict, _list};
 
 use super::{
-    expr::{Block, Expr},
+    expr::{Block, Expr, _NIL},
     Kurt,
 };
 
@@ -21,17 +18,14 @@ impl Kurt {
     //
     pub fn apply(&self, env: &Expr, exprs: Vec<Expr>) -> Expr {
         if self.debug {
-            let ls = Expr::EList(ERef::new(List {
-                loc: Loc::default(),
-                exprs: exprs.clone(),
-            }));
+            let ls = _list(exprs.clone());
             // println!("apply -- {} :: {}", env.clone(), ls);
             println!("apply :: {}", ls);
         }
 
         // () => nil
         if exprs.len() == 0 {
-            return Expr::ENil;
+            return _NIL;
         }
 
         let first = &self.eval(env, exprs.first().unwrap());
@@ -88,10 +82,7 @@ impl Kurt {
 
     fn invoke(&self, env: &Expr, block_expr: Expr, args: Vec<Expr>) -> Expr {
         if self.debug {
-            let ls = Expr::EList(ERef::new(List {
-                loc: Loc::default(),
-                exprs: args.clone(),
-            }));
+            let ls = _list(args.clone());
             // println!("invoke -- {} :: {}", env.clone(), ls);
             println!("invoke :: {}", ls);
         }
@@ -107,13 +98,7 @@ impl Kurt {
                     for arg in &args[i..] {
                         rest.push(self.eval(env, arg));
                     }
-                    frame.insert(
-                        block.params[i].clone(),
-                        Expr::EList(ERef::new(List {
-                            loc: Loc::default(),
-                            exprs: rest,
-                        })),
-                    );
+                    frame.insert(block.params[i].clone(), _list(rest));
                     break;
                 } else {
                     frame.insert(block.params[i].clone(), self.eval(env, &args[i]));
@@ -121,10 +106,7 @@ impl Kurt {
             }
 
             // TODO: validate param/arg match.
-            let nf = Expr::EDict(ERef::new(Dict {
-                loc: Loc::default(),
-                map: frame,
-            }));
+            let nf = _dict(frame);
             self.apply(env, vec![nf.clone(), block_expr.clone()])
         } else {
             self.throw(

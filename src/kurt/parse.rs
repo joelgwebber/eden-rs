@@ -5,9 +5,17 @@ use crate::kurt::expr::Apply;
 use crate::kurt::expr::Assoc;
 use crate::kurt::expr::Block;
 use crate::kurt::expr::List;
+use crate::kurt::expr::_bool;
+use crate::kurt::expr::_id;
+use crate::kurt::expr::_loc;
+use crate::kurt::expr::_NIL;
+use crate::kurt::expr::_num;
+use crate::kurt::expr::_q;
 use crate::kurt::ERef;
 use crate::kurt::Expr;
 use crate::kurt::Loc;
+use crate::kurt::expr::_str;
+use crate::kurt::expr::_uq;
 
 use super::Kurt;
 
@@ -63,22 +71,14 @@ impl Kurt {
                     .collect();
                 let exprs = rules.map(|val| self.parse_value(file, val)).collect();
                 Expr::EBlock(ERef::new(Block {
-                    loc: Loc {
-                        file: file.to_string(),
-                        name: "".to_string(),
-                        pos: span.start_pos().line_col(),
-                    },
+                    loc: _loc(file, "", span.start_pos().line_col()),
                     params: params,
                     expr: Expr::EApply(ERef::new(Apply {
-                        loc: Loc {
-                            file: file.to_string(),
-                            name: "".to_string(),
-                            pos: span.start_pos().line_col(),
-                        },
+                        loc: _loc(file, "", span.start_pos().line_col()),
                         exprs: exprs,
                     })),
-                    env: Expr::ENil,
-                    slf: Expr::ENil,
+                    env: _NIL,
+                    slf: _NIL,
                 }))
             }
 
@@ -132,19 +132,15 @@ impl Kurt {
 
             Rule::non_access => self.parse_value(file, expr.into_inner().next().unwrap()),
 
-            Rule::number => Expr::ENum(expr.as_str().parse().unwrap()),
-            Rule::boolean => Expr::EBool(expr.as_str().parse().unwrap()),
-            Rule::string => Expr::EStr(expr.as_str().to_string()),
-            Rule::id => Expr::EId(expr.as_str().to_string()),
+            Rule::number => _num(expr.as_str().parse().unwrap()),
+            Rule::boolean => _bool(expr.as_str().parse().unwrap()),
+            Rule::string => _str(expr.as_str()),
+            Rule::id => _id(expr.as_str()),
             Rule::prim => self.parse_value(file, expr.into_inner().next().unwrap()),
             Rule::expr => self.parse_value(file, expr.into_inner().next().unwrap()),
 
-            Rule::quote => Expr::EQuote(ERef::new(
-                self.parse_value(file, expr.into_inner().next().unwrap()),
-            )),
-            Rule::unquote => Expr::EUnquote(ERef::new(
-                self.parse_value(file, expr.into_inner().next().unwrap()),
-            )),
+            Rule::quote => _q(&self.parse_value(file, expr.into_inner().next().unwrap())),
+            Rule::unquote => _uq(&self.parse_value(file, expr.into_inner().next().unwrap())),
 
             _ => unreachable!(),
         }

@@ -1,6 +1,7 @@
 use std::fs;
 
-use crate::kurt::Kurt;
+use crate::kurt::expr::{_app, _id, _qid};
+use crate::kurt::{Kurt};
 
 mod kurt;
 
@@ -13,6 +14,10 @@ fn main() {
 
     let kurt = Kurt::new();
     kurt.eval_src(MAIN, src.as_str());
+    kurt.eval(
+        &kurt.root,
+        &_app(vec![_app(vec![_id("World"), _qid("init")])]),
+    );
 
     // App::build()
     //     .insert_resource(Msaa { samples: 4 })

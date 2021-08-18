@@ -2,10 +2,7 @@ use std::panic;
 
 use velcro::{hash_map, vec_from};
 
-use crate::kurt::{
-    expr::{Dict, ERef, Expr},
-    Kurt, Loc,
-};
+use crate::kurt::{Kurt, expr::{Expr, _bool, _dict, _FALSE, _id, _NIL, _TRUE}};
 
 use super::eq::expr_eq;
 
@@ -18,22 +15,22 @@ impl Kurt {
         self.add_builtin("let", &vec_from!["vars", "expr"], Kurt::native_let);
         self.add_builtin("set", &vec_from!["name", "value"], Kurt::native_set);
         self.add_builtin("set-all", &vec_from!["values"], Kurt::native_set_all);
+        self.add_builtin("if", &vec_from!["cond", "if", "else"], Kurt::native_if);
         self.add_builtin("?", &vec_from!["id"], Kurt::native_exists);
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
-        self.add_builtin("log", &vec_from!["msg"], Kurt::native_log);
+        self.add_builtin("log", &vec_from!["msgs..."], Kurt::native_log);
         self.add_builtin("test", &vec_from!["name", "expr"], Kurt::native_test);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
 
-        self.def_dict = Expr::EDict(ERef::new(Dict {
-            loc: Loc::default(),
-            map: hash_map! {
-                "set".into(): self.builtin("set", &vec_from!["name", "value"]),
-                "set-all".into(): self.builtin("set-all", &vec_from!["values"]),
-                "def".into(): self.builtin("def", &vec_from!["name", "value"]),
-                "def-all".into(): self.builtin("def-all", &vec_from!["values"]),
-                "?".into(): self.builtin("?", &vec_from!["id"]),
-            },
-        }));
+        self.def_dict = _dict(hash_map! {
+            "set".into(): self.builtin("set", &vec_from!["name", "value"]),
+            "set-all".into(): self.builtin("set-all", &vec_from!["values"]),
+            "def".into(): self.builtin("def", &vec_from!["name", "value"]),
+            "def-all".into(): self.builtin("def-all", &vec_from!["values"]),
+            "?".into(): self.builtin("?", &vec_from!["id"]),
+        });
+
+        self.eval_file("./src/kurt/lib/core.kurt");
 
         // Override panic handler to suppress automatic stack traces.
         panic::set_hook(Box::new(|info| {
@@ -46,17 +43,16 @@ impl Kurt {
     }
 
     fn native_eq(&self, env: &Expr) -> Expr {
-        let _a = self.loc_expr(env, "x");
-        let _b = self.loc_expr(env, "y");
-
-        Expr::EBool(expr_eq(_a, _b))
+        let _a = self.loc(env, "x");
+        let _b = self.loc(env, "y");
+        _bool(expr_eq(_a, _b))
     }
 
     fn native_do(&self, env: &Expr) -> Expr {
-        let exprs = self.loc_expr(&env, "exprs...");
+        let exprs = self.loc(&env, "exprs...");
         match &exprs {
             Expr::EList(vec_ref) => {
-                let mut last = Expr::ENil;
+                let mut last = _NIL;
                 for expr in &vec_ref.borrow().exprs {
                     last = self.apply(&env, vec![expr.clone()])
                 }
@@ -67,15 +63,15 @@ impl Kurt {
     }
 
     fn native_let(&self, env: &Expr) -> Expr {
-        let vars = self.loc_expr(&env, "vars");
-        let expr = self.loc_expr(&env, "expr");
+        let vars = self.loc(&env, "vars");
+        let expr = self.loc(&env, "expr");
         self.apply(env, vec![vars, expr])
     }
 
     fn native_def(&self, env: &Expr) -> Expr {
-        let this = self.loc_expr(&env, "@");
-        let name = self.loc_expr(&env, "name");
-        let value = self.loc_expr(&env, "value");
+        let this = self.loc(&env, "@");
+        let name = self.loc(&env, "name");
+        let value = self.loc(&env, "value");
 
         name_block(&name, &value);
         self.def(&this, &name, &value);
@@ -83,13 +79,13 @@ impl Kurt {
     }
 
     fn native_def_all(&self, env: &Expr) -> Expr {
-        let this = self.loc_expr(&env, "@");
-        let values = self.loc_expr(&env, "values");
+        let this = self.loc(&env, "@");
+        let values = self.loc(&env, "values");
         match &values {
             Expr::EDict(dict_ref) => {
                 let dict = &*dict_ref.borrow();
                 for (name, value) in &dict.map {
-                    let name_expr = Expr::EId(name.into());
+                    let name_expr = _id(name.as_str());
                     name_block(&name_expr, &value);
                     self.def(&this, &name_expr, &value);
                 }
@@ -100,9 +96,9 @@ impl Kurt {
     }
 
     fn native_set(&self, env: &Expr) -> Expr {
-        let this = self.loc_expr(&env, "@");
-        let name = self.loc_expr(&env, "name");
-        let value = self.loc_expr(&env, "value");
+        let this = self.loc(&env, "@");
+        let name = self.loc(&env, "name");
+        let value = self.loc(&env, "value");
 
         name_block(&name, &value);
         self.set(&this, &name, &value);
@@ -110,13 +106,13 @@ impl Kurt {
     }
 
     fn native_set_all(&self, env: &Expr) -> Expr {
-        let this = self.loc_expr(&env, "@");
-        let values = self.loc_expr(&env, "values");
+        let this = self.loc(&env, "@");
+        let values = self.loc(&env, "values");
         match &values {
             Expr::EDict(dict_ref) => {
                 let dict = &*dict_ref.borrow();
                 for (name, value) in &dict.map {
-                    let name_expr = Expr::EId(name.into());
+                    let name_expr = _id(name.as_str());
                     name_block(&name_expr, &value);
                     self.def(&this, &name_expr, &value);
                 }
@@ -126,26 +122,46 @@ impl Kurt {
         }
     }
 
+    fn native_if(kurt: &Kurt, env: &Expr) -> Expr {
+        let cond = kurt.loc(env, "cond");
+        let _if = kurt.loc(env, "if");
+        let _else = kurt.loc(env, "else");
+        match &cond {
+            Expr::EBool(b) => {
+                if *b {
+                    kurt.apply(env, vec![_if.clone()])
+                } else {
+                    kurt.apply(env, vec![_else.clone()])
+                }
+            }
+            _ => kurt.throw(env, format!("")),
+        }
+    }
+
     fn native_exists(kurt: &Kurt, env: &Expr) -> Expr {
-        let this = kurt.loc_expr(env, "@");
-        let id = kurt.loc_expr(env, "id");
+        let this = kurt.loc(env, "@");
+        let id = kurt.loc(env, "id");
         match &id {
             Expr::EId(name) => match kurt.find_scope(&this, &name) {
-                Some(_) => Expr::EBool(true),
-                _ => Expr::EBool(false),
+                Some(_) => _TRUE,
+                _ => _FALSE,
             },
-            _ => Expr::EBool(false),
+            _ => _FALSE,
         }
     }
 
     fn native_log(&self, env: &Expr) -> Expr {
-        println!("{}", self.loc_expr(&env, "msg"));
-        Expr::ENil
+        let list = self.loc_list(&env, "msgs...");
+        for expr in list {
+            print!("{} ", expr);
+        }
+        println!();
+        _NIL
     }
 
     fn native_try(&self, env: &Expr) -> Expr {
-        let block = self.loc_expr(&env, "block");
-        let catch = self.loc_expr(&env, "catch");
+        let block = self.loc(&env, "block");
+        let catch = self.loc(&env, "catch");
         match (&block, &catch) {
             (Expr::EBlock(_), Expr::EBlock(_)) => {
                 match panic::catch_unwind(|| self.apply(&env, vec![block.clone()])) {
@@ -162,23 +178,23 @@ impl Kurt {
 
     fn native_test(&self, env: &Expr) -> Expr {
         let name = self.loc_str(env, "name");
-        let expr = self.loc_expr(env, "expr");
+        let expr = self.loc(env, "expr");
         println!("-[ {} ]-", name);
         self.apply(&env, vec![expr.clone()]);
         println!();
-        Expr::ENil
+        _NIL
     }
 
     fn native_expect(&self, env: &Expr) -> Expr {
-        let expect = self.loc_expr(env, "expect");
-        let expr = self.loc_expr(env, "expr");
+        let expect = self.loc(env, "expect");
+        let expr = self.loc(env, "expr");
         if !expr_eq(expect.clone(), expr.clone()) {
             self.throw(
                 env,
                 format!("expected {} : got {}", expect.clone(), expr.clone()),
             );
         }
-        Expr::ENil
+        _NIL
     }
 }
 

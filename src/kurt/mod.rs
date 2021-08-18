@@ -1,22 +1,23 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::{fs, panic};
 use std::panic::{RefUnwindSafe, UnwindSafe};
+use std::{fs, panic};
 
 use gc::Finalize;
 use gc::Trace;
 use velcro::hash_map;
 
-use crate::kurt::expr::List;
+use crate::kurt::expr::{_id, _list, _num, _str};
 
-use self::expr::{Dict, ERef, Expr};
+use self::expr::{ERef, Expr, _dict, _NIL};
 
-mod apply;
-mod eval;
-mod expr;
+pub mod apply;
+pub mod eval;
+pub mod expr;
+pub mod parse;
+pub mod print;
+
 mod lib;
-mod parse;
-mod print;
 
 pub struct Kurt {
     pub root: Expr,
@@ -30,10 +31,6 @@ pub struct Kurt {
     exception: RefCell<Option<Expr>>,
 }
 
-// Needed for the use of kurt refs in the panic handler.
-impl UnwindSafe for Kurt {}
-impl RefUnwindSafe for Kurt {}
-
 #[derive(Debug, Default, Trace, Finalize, PartialEq, Clone)]
 pub struct Loc {
     file: String,
@@ -41,17 +38,18 @@ pub struct Loc {
     pos: (usize, usize),
 }
 
+// Needed for the use of kurt refs in the panic handler.
+impl UnwindSafe for Kurt {}
+impl RefUnwindSafe for Kurt {}
+
 impl Kurt {
     pub fn new() -> Kurt {
         let mut kurt = Kurt {
             builtins: HashMap::new(),
-            root: Expr::EDict(ERef::new(Dict {
-                map: HashMap::new(),
-                loc: Loc::default(),
-            })),
-            def_num: Expr::ENil,
-            def_dict: Expr::ENil,
-            def_list: Expr::ENil,
+            root: _dict(HashMap::new()),
+            def_num: _NIL,
+            def_dict: _NIL,
+            def_list: _NIL,
             debug: false,
             exception: RefCell::new(None),
         };
@@ -59,9 +57,35 @@ impl Kurt {
         kurt
     }
 
+    pub fn test_file(filename: &str) {
+        println!("-- {}", filename);
+        let kurt = Kurt::new();
+        kurt.eval_file(filename);
+    }
+
     pub fn eval_src(&self, name: &str, src: &str) -> Expr {
-        let expr = self.parse(name.into(), src.into());
-        self.eval(&self.root.clone(), &expr)
+        match panic::catch_unwind(|| {
+            let expr = self.parse(name.into(), src.into());
+            self.eval(&self.root.clone(), &expr)
+        }) {
+            Ok(expr) => expr,
+            Err(_) => match self.exception.replace(None) {
+                Some(expr) => {
+                    self.apply(&self.root, vec![_id("print-exception"), expr]);
+                    _NIL
+                }
+                None => _NIL,
+            },
+        }
+    }
+
+    pub fn eval_file(&self, filename: &str) {
+        self.eval_src(
+            filename,
+            fs::read_to_string(filename)
+                .expect("cannot read test file")
+                .as_str(),
+        );
     }
 
     pub fn def(&self, env: &Expr, key: &Expr, val: &Expr) {
@@ -93,7 +117,13 @@ impl Kurt {
                 *expr = val.clone();
             }
 
-            (_, _) => self.throw(env, "set requires [dict id] or [list num]".to_string()),
+            (_, _) => self.throw(
+                env,
+                format!(
+                    "set requires (dict id) or (list num); got ({} {})",
+                    env, name
+                ),
+            ),
         }
     }
 
@@ -125,8 +155,8 @@ impl Kurt {
                     .clone()
             }
 
-            (Expr::EList(_), Expr::EId(name)) => self.get(&self.def_list, &Expr::EId(name.clone())),
-            (Expr::ENum(_), Expr::EId(name)) => self.get(&self.def_num, &Expr::EId(name.clone())),
+            (Expr::EList(_), Expr::EId(name)) => self.get(&self.def_list, &_id(name)),
+            (Expr::ENum(_), Expr::EId(name)) => self.get(&self.def_num, &_id(name)),
 
             (_, _) => name.clone(),
         }
@@ -137,7 +167,7 @@ impl Kurt {
             // Check current dict.
             Expr::EDict(dict_ref) => {
                 if dict_ref.borrow().map.contains_key(name) {
-                    return Some(target.clone())
+                    return Some(target.clone());
                 }
 
                 // Check parent.
@@ -163,64 +193,24 @@ impl Kurt {
     pub fn throw(&self, env: &Expr, msg: String) -> ! {
         // TODO: There's gotta be a way to make this less shitty.
         let mut map = HashMap::<String, Expr>::new();
-        map.insert("message".to_string(), Expr::EStr(msg));
+        map.insert("message".to_string(), _str(msg.as_str()));
         let mut stack = Vec::<Expr>::new();
 
         let mut cur = Some(env.clone());
         while let Some(expr) = cur {
             match expr.loc() {
-                Some(loc) => stack.push(Expr::EDict(ERef::new(Dict {
-                    loc: Loc::default(),
-                    map: hash_map! {
-                        "file".into(): Expr::EStr(loc.file.clone()),
-                        "name".into(): Expr::EStr(loc.name.clone()),
-                        "pos".into(): Expr::EList(ERef::new(List{
-                            loc: Loc::default(),
-                            exprs: vec![Expr::ENum(loc.pos.0 as f64), Expr::ENum(loc.pos.1 as f64)]
-                        })),
-                    },
-                }))),
+                Some(loc) => stack.push(_dict(hash_map! {
+                    "file".into(): _str(loc.file.as_str()),
+                    "name".into(): _str(loc.name.as_str()),
+                    "pos".into(): _list(vec![_num(loc.pos.0 as f64), _num(loc.pos.1 as f64)]),
+                })),
                 None => (),
             }
             cur = expr.caller();
         }
 
-        map.insert(
-            "stack".to_string(),
-            Expr::EList(ERef::new(List {
-                loc: Loc::default(),
-                exprs: stack,
-            })),
-        );
-
-        self.exception.replace(Some(Expr::EDict(ERef::new(Dict {
-            loc: Loc::default(),
-            map: map,
-        }))));
+        map.insert("stack".to_string(), _list(stack));
+        self.exception.replace(Some(_dict(map)));
         panic!("[exception]")
-    }
-
-    pub fn test_file(filename: &str) {
-        Kurt::test(
-            filename,
-            fs::read_to_string(filename)
-                .expect("cannot read test file")
-                .as_str(),
-        )
-    }
-
-    pub fn test(name: &str, src: &str) {
-        println!("-- {}", name);
-        let kurt = Kurt::new();
-
-        match panic::catch_unwind(|| kurt.eval_src(name, src)) {
-            Ok(_) => (),
-            Err(_) => match kurt.exception.replace(None) {
-                Some(expr) => {
-                    println!("FAIL: {}", expr);
-                }
-                None => (),
-            },
-        }
     }
 }

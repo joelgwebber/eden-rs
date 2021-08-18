@@ -177,3 +177,81 @@ impl Clone for Expr {
         }
     }
 }
+
+pub const _NIL: Expr = Expr::ENil;
+pub const _FALSE: Expr = Expr::EBool(false);
+pub const _TRUE: Expr = Expr::EBool(true);
+
+pub fn _bool(x: bool) -> Expr {
+    Expr::EBool(x)
+}
+
+pub fn _num(x: f64) -> Expr {
+    Expr::ENum(x)
+}
+
+pub fn _str(x: &str) -> Expr {
+    Expr::EStr(x.into())
+}
+
+pub fn _list(exprs: Vec<Expr>) -> Expr {
+    Expr::EList(ERef::new(List {
+        loc: Loc::default(),
+        exprs: exprs,
+    }))
+}
+
+pub fn _assoc(pairs: Vec<(Expr, Expr)>) -> Expr {
+    Expr::EAssoc(ERef::new(Assoc {
+        loc: Loc::default(),
+        pairs: pairs,
+    }))
+}
+
+pub fn _dict(map: HashMap<String, Expr>) -> Expr {
+    Expr::EDict(ERef::new(Dict {
+        loc: Loc::default(),
+        map: map,
+    }))
+}
+
+pub fn _id(name: &str) -> Expr {
+    Expr::EId(name.into())
+}
+
+pub fn _q(expr: &Expr) -> Expr {
+    Expr::EQuote(ERef::new(expr.clone()))
+}
+
+pub fn _qid(name: &str) -> Expr {
+    _q(&_id(name))
+}
+
+pub fn _uq(expr: &Expr) -> Expr {
+    Expr::EUnquote(ERef::new(expr.clone()))
+}
+
+pub fn _app(exprs: Vec<Expr>) -> Expr {
+    Expr::EApply(ERef::new(Apply {
+        loc: Loc::default(),
+        exprs: exprs,
+    }))
+}
+
+pub fn _block(params: Vec<String>, expr: Expr) -> Expr {
+    Expr::EBlock(ERef::new(Block {
+        loc: Loc::default(),
+        params: params,
+        expr: expr,
+        env: _NIL,
+        slf: _NIL,
+    }))
+}
+
+pub fn _loc(file: &str, name: &str, pos: (usize, usize)) -> Loc {
+    Loc {
+        file: file.into(),
+        name: name.into(),
+        pos: pos,
+    }
+}

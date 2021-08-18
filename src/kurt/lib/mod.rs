@@ -1,12 +1,9 @@
-use super::{
-    expr::{Block, ERef, Expr},
-    Kurt, Loc,
-};
+use super::{Kurt, Loc, expr::{Block, ERef, Expr, _id, _NIL}};
 
 mod core;
-mod math;
-mod list;
 mod eq;
+mod list;
+mod math;
 
 impl Kurt {
     pub fn init_lib(&mut self) {
@@ -24,8 +21,8 @@ impl Kurt {
             },
             params: args.clone(),
             expr: Expr::ENative(name),
-            env: Expr::ENil,
-            slf: Expr::ENil,
+            env: _NIL,
+            slf: _NIL,
         }))
     }
 
@@ -38,12 +35,12 @@ impl Kurt {
         self.builtins.insert(name, f);
         self.def(
             &self.root.clone(),
-            &Expr::EId(name.to_string()),
+            &_id(name),
             &self.builtin(name, args).clone(),
         );
     }
 
-    pub fn loc_expr(&self, env: &Expr, name: &str) -> Expr {
+    pub fn loc(&self, env: &Expr, name: &str) -> Expr {
         if let Expr::EDict(env_map_ref) = &env {
             let env_map = &env_map_ref.borrow().map;
             match env_map.get(name) {
@@ -52,6 +49,16 @@ impl Kurt {
             }
         } else {
             self.throw(env, format!("expected dict env"))
+        }
+    }
+
+    pub fn loc_list(&self, env: &Expr, name: &str) -> Vec<Expr> {
+        match &self.loc(env, name) {
+            Expr::EList(list_ref) => {
+                let list = &*list_ref.borrow();
+                list.exprs.clone()
+            }
+            _ => self.throw(env, format!("expected list")),
         }
     }
 
@@ -68,7 +75,7 @@ impl Kurt {
     }
 
     pub fn loc_str(&self, env: &Expr, name: &str) -> String {
-        let expr = self.loc_expr(env, name);
+        let expr = self.loc(env, name);
         match &expr {
             Expr::EStr(s) => s.clone(),
             _ => self.throw(env, format!("expected str, got {}", expr)),
@@ -76,7 +83,7 @@ impl Kurt {
     }
 
     pub fn loc_num(&self, env: &Expr, name: &str) -> f64 {
-        let expr = self.loc_expr(env, name);
+        let expr = self.loc(env, name);
         match &expr {
             Expr::ENum(x) => *x,
             _ => self.throw(env, format!("expected num, got {}", expr)),
@@ -84,7 +91,7 @@ impl Kurt {
     }
 
     pub fn loc_bool(&self, env: &Expr, name: &str) -> bool {
-        let expr = self.loc_expr(env, name);
+        let expr = self.loc(env, name);
         match &expr {
             Expr::EBool(x) => *x,
             _ => self.throw(env, format!("expected bool, got {}", expr)),

@@ -1,11 +1,12 @@
-(def-all
+(def-all {
     :World {
         :ents {}
         :index {}
 
         :init (| do
-            (add (Player.new))
-            (add (Enemy.new))
+            (log "(World.init)")
+            (World.add (Player.new))
+            (World.add (Enemy.new))
             (tick)
         )
 
@@ -15,7 +16,7 @@
         )
 
         :add (ent | do
-            (@:ents.set ent.id ent)
+            (@.ents.set ent.id ent)
             (ent.for-each (key comp |
                 (if (World.? :index) (World.set :index []))
                 ((World.index key).push ent.id)
@@ -29,7 +30,7 @@
         :new (comps | do
             (def :@ { :id Entity.next-id })
             (Entity.set :next-id (+ Entity.next-id 1))
-            (@.set comps)
+            (@.set-all comps)
             @
         )
     }
@@ -37,7 +38,7 @@
     :Located {
         :id :located
         :new (x y z | {
-            :^ -impl
+            :^ Located.-impl
             :x  x :y  y :z  z
             :dx 0 :dy 0 :dz 0
         })
@@ -61,7 +62,7 @@
     :Rendered {
         :id :rendered
         :new (img | {
-            :^ -impl
+            :^ Rendered.-impl
             :img img
         })
 
@@ -89,11 +90,11 @@
     }
 
     :Player {
-        :new (| (Entity:new {
+        :new (| (Entity.new {
             Located.id (Located.new 0 0 0)
             Rendered.id (Rendered.new "player.png")
             :player {
-                :^ -impl
+                :^ Player.-impl
                 :name "player"
                 :helth 100
             }
@@ -103,4 +104,4 @@
             -- ...
         }
     }
-)
+})

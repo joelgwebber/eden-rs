@@ -1,8 +1,8 @@
 use velcro::{hash_map, vec_from};
 
-use crate::kurt::{expr::Dict, Expr, Loc};
+use crate::kurt::{Expr, expr::{_bool, _dict, _num}};
 
-use super::{ERef, Kurt};
+use super::{Kurt};
 
 impl Kurt {
     pub fn init_math(&mut self) {
@@ -16,29 +16,26 @@ impl Kurt {
 
         self.add_builtin("not", &vec_from!["x"], Kurt::native_not);
 
-        self.def_num = Expr::EDict(ERef::new(Dict {
-            loc: Loc::default(),
-            map: hash_map! {},
-        }));
+        self.def_num = _dict(hash_map! {});
     }
 
     fn native_add(&self, env: &Expr) -> Expr {
         let mut total = 0f64;
         self.addmul_helper(env, |x| total += x);
-        Expr::ENum(total)
+        _num(total)
     }
 
     fn native_mul(&self, env: &Expr) -> Expr {
         let mut total = 1f64;
         self.addmul_helper(env, |x| total *= x);
-        Expr::ENum(total)
+        _num(total)
     }
 
     fn addmul_helper<F>(&self, env: &Expr, mut func: F)
     where
         F: FnMut(f64),
     {
-        match &self.loc_expr(&env, "vals...") {
+        match &self.loc(&env, "vals...") {
             Expr::EList(vec_ref) => {
                 for val in &vec_ref.borrow().exprs {
                     match val {
@@ -55,8 +52,8 @@ impl Kurt {
         let x = self.loc_num(&env, "x");
         let oy = self.loc_opt_num(env, "y");
         match oy {
-            Some(y) => Expr::ENum(x - y),
-            None => Expr::ENum(-x),
+            Some(y) => _num(x - y),
+            None => _num(-x),
         }
     }
 
@@ -64,22 +61,22 @@ impl Kurt {
         let x = self.loc_num(&env, "x");
         let oy = self.loc_opt_num(env, "y");
         match oy {
-            Some(y) => Expr::ENum(x / y),
-            None => Expr::ENum(1f64 / x),
+            Some(y) => _num(x / y),
+            None => _num(1f64 / x),
         }
     }
 
     fn native_sin(&self, env: &Expr) -> Expr {
-        Expr::ENum(f64::sin(self.loc_num(&env, "x")))
+        _num(f64::sin(self.loc_num(&env, "x")))
     }
 
     fn native_cos(&self, env: &Expr) -> Expr {
-        Expr::ENum(f64::cos(self.loc_num(&env, "x")))
+        _num(f64::cos(self.loc_num(&env, "x")))
     }
 
     fn native_not(&self, env: &Expr) -> Expr {
         let x = self.loc_bool(&env, "x");
-        Expr::EBool(!x)
+        _bool(!x)
     }
 }
 
@@ -91,4 +88,3 @@ mod tests {
         Kurt::test_file("src/kurt/lib/math_test.kurt");
     }
 }
-
