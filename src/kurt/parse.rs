@@ -132,9 +132,14 @@ impl Kurt {
 
             Rule::non_access => self.parse_value(file, expr.into_inner().next().unwrap()),
 
+            Rule::nil => _NIL,
             Rule::number => _num(expr.as_str().parse().unwrap()),
             Rule::boolean => _bool(expr.as_str().parse().unwrap()),
-            Rule::string => _str(expr.as_str()),
+            Rule::string => {
+                // Strip quotes.
+                let s = expr.as_str();
+                _str(&s[1..s.len()-1])
+            }
             Rule::id => _id(expr.as_str()),
             Rule::prim => self.parse_value(file, expr.into_inner().next().unwrap()),
             Rule::expr => self.parse_value(file, expr.into_inner().next().unwrap()),

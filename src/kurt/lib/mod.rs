@@ -4,11 +4,13 @@ mod core;
 mod eq;
 mod list;
 mod math;
+mod str;
 
 impl Kurt {
     pub fn init_lib(&mut self) {
         self.init_core();
         self.init_math();
+        self.init_str();
         self.init_list();
     }
 

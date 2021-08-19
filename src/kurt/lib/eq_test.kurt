@@ -1,5 +1,9 @@
 (do
-    (expect true (= 42 42))
+    (test "primitives" (| do
+        (expect true (= 42 42))
+        (expect true (!= 42 54))
+    ))
+
     -- TODO: The rest...
     -- Equality cases with super refs
     -- Ref equality

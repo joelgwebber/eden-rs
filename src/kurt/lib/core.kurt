@@ -1,10 +1,13 @@
 (def-all {
     :print-exception (e | do
-        (log e.message)
+        (print e.message)
         (e.stack.for-each (_ frame | do
-            (if (frame.? :file) (log frame.file) ())
-            (if (frame.? :name) (log frame.name) ())
-            (log frame.pos)
+            (print
+                "  "
+                (if (> (frame.name.len) 0) frame.name "(unknown)")
+                (if (> (frame.file.len) 0) frame.file nil)
+                (if (= [0 0] frame.pos) nil [frame.pos.0 frame.pos.1])
+            )
         ))
     )
 })

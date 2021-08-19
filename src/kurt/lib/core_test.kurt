@@ -110,6 +110,11 @@
         (expect true caught)
     ))
 
+    (test "boolean ops" (| do
+        (expect true (not false))
+        (expect false (not true))
+    ))
+
     (test "macro-ish things" (| do
         -- TODO: Make ellipsis args work.
         (def :infix (l | (l.1 l.0 l.2)))

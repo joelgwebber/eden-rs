@@ -13,6 +13,7 @@ pest = "2.0"
 pest_derive = "2.0"
 velcro = "0.5.3"
 lazy_static = "1.4.0"
+rustyline = "9.0.0"
 
 # Add the contents of this file to `config.toml` to enable "fast build" configuration. Please read the notes below.
 

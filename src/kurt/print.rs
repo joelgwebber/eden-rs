@@ -116,8 +116,8 @@ fn write_map(f: &mut fmt::Formatter, m: &HashMap<String, Expr>) -> fmt::Result {
     for (name, expr) in m {
         write!(f, ":{} ", name)?;
         match expr {
-            // Expr::EDict(_) => { f.write_str("{...}")?; () }
-            // Expr::EList(_) => { f.write_str("[...]")?; () }
+            Expr::EDict(_) => { f.write_str("{...}")?; () }
+            Expr::EList(_) => { f.write_str("[...]")?; () }
             _ => expr.fmt(f)?,
         }
         if i < m.len() - 1 {

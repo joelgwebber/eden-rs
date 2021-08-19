@@ -4,7 +4,7 @@
         :index {}
 
         :init (| do
-            (log "(World.init)")
+            (print "(World.init)")
             (World.add (Player.new))
             (World.add (Enemy.new))
             (tick)
@@ -68,7 +68,7 @@
 
         :-impl {
             :draw (x y z |
-                (log ["drawing" x y z])
+                (print ["drawing" x y z])
             )
         }
     }

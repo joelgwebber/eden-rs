@@ -11,10 +11,13 @@ impl Kurt {
         self.add_builtin("-", &vec_from!["x", "y"], Kurt::native_sub);
         self.add_builtin("/", &vec_from!["x", "y"], Kurt::native_div);
 
+        self.add_builtin("<", &vec_from!["x", "y"], Kurt::native_lt);
+        self.add_builtin(">", &vec_from!["x", "y"], Kurt::native_gt);
+        self.add_builtin("<=", &vec_from!["x", "y"], Kurt::native_lte);
+        self.add_builtin(">=", &vec_from!["x", "y"], Kurt::native_gte);
+
         self.add_builtin("cos", &vec_from!["x"], Kurt::native_cos);
         self.add_builtin("sin", &vec_from!["x"], Kurt::native_sin);
-
-        self.add_builtin("not", &vec_from!["x"], Kurt::native_not);
 
         self.def_num = _dict(hash_map! {});
     }
@@ -66,17 +69,28 @@ impl Kurt {
         }
     }
 
+    fn native_lt(&self, env: &Expr) -> Expr {
+        _bool(self.loc_num(&env, "x") < self.loc_num(&env, "y"))
+    }
+
+    fn native_gt(&self, env: &Expr) -> Expr {
+        _bool(self.loc_num(&env, "x") > self.loc_num(&env, "y"))
+    }
+
+    fn native_lte(&self, env: &Expr) -> Expr {
+        _bool(self.loc_num(&env, "x") <= self.loc_num(&env, "y"))
+    }
+
+    fn native_gte(&self, env: &Expr) -> Expr {
+        _bool(self.loc_num(&env, "x") >= self.loc_num(&env, "y"))
+    }
+
     fn native_sin(&self, env: &Expr) -> Expr {
         _num(f64::sin(self.loc_num(&env, "x")))
     }
 
     fn native_cos(&self, env: &Expr) -> Expr {
         _num(f64::cos(self.loc_num(&env, "x")))
-    }
-
-    fn native_not(&self, env: &Expr) -> Expr {
-        let x = self.loc_bool(&env, "x");
-        _bool(!x)
     }
 }
 

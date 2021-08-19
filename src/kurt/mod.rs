@@ -25,8 +25,9 @@ pub struct Kurt {
 
     builtins: HashMap<&'static str, fn(&Kurt, &Expr) -> Expr>,
     def_num: Expr,
-    def_dict: Expr,
+    def_str: Expr,
     def_list: Expr,
+    def_dict: Expr,
 
     exception: RefCell<Option<Expr>>,
 }
@@ -48,6 +49,7 @@ impl Kurt {
             builtins: HashMap::new(),
             root: _dict(HashMap::new()),
             def_num: _NIL,
+            def_str: _NIL,
             def_dict: _NIL,
             def_list: _NIL,
             debug: false,
@@ -158,6 +160,7 @@ impl Kurt {
 
             (Expr::EList(_), Expr::EId(name)) => self.get(&self.def_list, &_id(name)),
             (Expr::ENum(_), Expr::EId(name)) => self.get(&self.def_num, &_id(name)),
+            (Expr::EStr(_), Expr::EId(name)) => self.get(&self.def_str, &_id(name)),
 
             (_, _) => name.clone(),
         }

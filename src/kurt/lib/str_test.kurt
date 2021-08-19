@@ -1,0 +1,5 @@
+(do
+    (test "len" (|
+        (expect 3 ("str".len))
+    ))
+)

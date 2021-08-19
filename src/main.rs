@@ -13,7 +13,7 @@ fn main() {
     let src = fs::read_to_string(MAIN).expect("cannot read file");
 
     let kurt = Kurt::new();
-    kurt.eval_src(MAIN, src.as_str());
+    kurt.eval_src(&kurt.root, MAIN, src.as_str());
     kurt.eval(
         &kurt.root,
         &_app(vec![_app(vec![_id("World"), _qid("init")])]),

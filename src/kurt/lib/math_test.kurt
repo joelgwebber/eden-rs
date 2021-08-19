@@ -1,21 +1,39 @@
 (do
-    -- add
-    (expect 44 (+ 42 2))
-    (expect 46 (+ 42 2 2))
+    (test "add" (| do
+        (expect 44 (+ 42 2))
+        (expect 46 (+ 42 2 2))
+    ))
 
-    -- sub
-    (expect 40 (- 42 2))
-    (expect -42 (- 42))
+    (test "sub" (| do
+        (expect 40 (- 42 2))
+        (expect -42 (- 42))
+    ))
 
-    -- mul
-    (expect 42 (* 6 7))
-    (expect 42 (* 2 3 7))
+    (test "mul" (| do
+        (expect 42 (* 6 7))
+        (expect 42 (* 2 3 7))
+    ))
 
-    -- div
-    (expect 42 (/ 84 2))
-    (expect 0.5 (/ 2))
+    (test "div" (| do
+        (expect 42 (/ 84 2))
+        (expect 0.5 (/ 2))
+    ))
 
-    -- funcs
-    (expect 1 (cos 0))
-    (expect 0 (sin 0))
+    (test "comparison" (| do
+        (expect true (< 1 2))
+        (expect false (< 2 1))
+        (expect false (> 1 2))
+        (expect true (> 2 1))
+        (expect true (<= 1 2))
+        (expect false (<= 2 1))
+        (expect false (>= 1 2))
+        (expect true (>= 2 1))
+        (expect true (<= 1 1))
+        (expect true (>= 1 1))
+    ))
+
+    (test "funcs" (| do
+        (expect 1 (cos 0))
+        (expect 0 (sin 0))
+    ))
 )

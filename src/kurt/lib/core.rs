@@ -9,6 +9,7 @@ use super::eq::expr_eq;
 impl Kurt {
     pub fn init_core(&mut self) {
         self.add_builtin("=", &vec_from!["x", "y"], Kurt::native_eq);
+        self.add_builtin("!=", &vec_from!["x", "y"], Kurt::native_neq);
         self.add_builtin("do", &vec_from!["exprs..."], Kurt::native_do);
         self.add_builtin("def", &vec_from!["name", "value"], Kurt::native_def);
         self.add_builtin("def-all", &vec_from!["values"], Kurt::native_def_all);
@@ -18,9 +19,12 @@ impl Kurt {
         self.add_builtin("if", &vec_from!["cond", "if", "else"], Kurt::native_if);
         self.add_builtin("?", &vec_from!["id"], Kurt::native_exists);
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
-        self.add_builtin("log", &vec_from!["msgs..."], Kurt::native_log);
+        self.add_builtin("print", &vec_from!["msgs..."], Kurt::native_print);
+
         self.add_builtin("test", &vec_from!["name", "expr"], Kurt::native_test);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
+
+        self.add_builtin("not", &vec_from!["x"], Kurt::native_not);
 
         self.def_dict = _dict(hash_map! {
             "set".into(): self.builtin("set", &vec_from!["name", "value"]),
@@ -46,6 +50,12 @@ impl Kurt {
         let _a = self.loc(env, "x");
         let _b = self.loc(env, "y");
         _bool(expr_eq(_a, _b))
+    }
+
+    fn native_neq(&self, env: &Expr) -> Expr {
+        let _a = self.loc(env, "x");
+        let _b = self.loc(env, "y");
+        _bool(!expr_eq(_a, _b))
     }
 
     fn native_do(&self, env: &Expr) -> Expr {
@@ -150,10 +160,12 @@ impl Kurt {
         }
     }
 
-    fn native_log(&self, env: &Expr) -> Expr {
+    fn native_print(&self, env: &Expr) -> Expr {
         let list = self.loc_list(&env, "msgs...");
         for expr in list {
-            print!("{} ", expr);
+            if expr != _NIL {
+                print!("{} ", expr);
+            }
         }
         println!();
         _NIL
@@ -195,6 +207,10 @@ impl Kurt {
             );
         }
         _NIL
+    }
+
+    fn native_not(&self, env: &Expr) -> Expr {
+        _bool(!self.loc_bool(&env, "x"))
     }
 }
 
