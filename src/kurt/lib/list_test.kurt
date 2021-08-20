@@ -1,10 +1,10 @@
 (do
-    (test "for-each" (| let {
+    (test "iter" (| let {
             :list [2 3 4 5 6]
             :total 0
         }
         (| do
-            (list.for-each (_ x | set :total (+ total x)))
+            (list.iter (x | set :total (+ total x)))
             (expect 20 total)
         )
     ))

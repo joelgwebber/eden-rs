@@ -11,13 +11,13 @@
         )
 
         :tick (| do
-            (@.index.located.for-each (_ id | ((@.ents id).update)))
-            (@.index.rendered.for-each (_ id | ((@.ents id).render)))
+            (@.index.located.iter (id | ((@.ents id).update)))
+            (@.index.rendered.iter (id | ((@.ents id).render)))
         )
 
         :add (ent | do
             (@.ents.set ent.id ent)
-            (ent.for-each (key comp |
+            (ent.iter (key comp |
                 (if (World.? :index) (World.set :index []))
                 ((World.index key).push ent.id)
             ))
@@ -96,7 +96,7 @@
             :player {
                 :^ Player.-impl
                 :name "player"
-                :helth 100
+                :health 100
             }
         }))
 

@@ -8,14 +8,14 @@ use crate::kurt::{
 impl Kurt {
     pub fn init_list(&mut self) {
         self.add_builtin("list:len", &vec_from![""], Kurt::native_list_len);
-        self.add_builtin("list:for-each", &vec_from!["block"], Kurt::native_list_for_each);
+        self.add_builtin("list:iter", &vec_from!["block"], Kurt::native_list_iter);
         self.add_builtin("list:push", &vec_from!["value"], Kurt::native_list_push);
         self.add_builtin("list:pop", &vec_from![""], Kurt::native_list_pop);
 
         self.def_list = _dict(hash_map! {
             "set".into(): self.builtin("set", &vec_from!["name", "value"]),
             "len".into(): self.builtin("list:len", &vec_from![]),
-            "for-each".into(): self.builtin("list:for-each", &vec_from!["block"]),
+            "iter".into(): self.builtin("list:iter", &vec_from!["block"]),
             "push".into(): self.builtin("list:push", &vec_from!["value"]),
             "pop".into(): self.builtin("list:pop", &vec_from![]),
         });
@@ -59,7 +59,7 @@ impl Kurt {
         }
     }
 
-    fn native_list_for_each(&self, env: &Expr) -> Expr {
+    fn native_list_iter(&self, env: &Expr) -> Expr {
         let this = self.loc(env, "@");
         let block = self.loc(env, "block");
         match &this {
@@ -70,7 +70,7 @@ impl Kurt {
                     self.apply(env, vec![block.clone(), _num(i as f64), item.clone()]);
                 }
             }
-            _ => self.throw(env, "for-each requires a list".into()),
+            _ => self.throw(env, "iter requires a list".into()),
         }
         _NIL
     }

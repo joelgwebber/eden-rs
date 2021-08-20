@@ -1,15 +1,16 @@
 use std::panic;
 
-use velcro::{hash_map, vec_from};
+use velcro::vec_from;
 
-use crate::kurt::{Kurt, expr::{Expr, _bool, _dict, _FALSE, _id, _NIL, _TRUE}};
+use crate::kurt::{
+    expr::{Expr, _bool, _id, _FALSE, _NIL, _TRUE},
+    Kurt,
+};
 
 use super::eq::expr_eq;
 
 impl Kurt {
     pub fn init_core(&mut self) {
-        self.add_builtin("=", &vec_from!["x", "y"], Kurt::native_eq);
-        self.add_builtin("!=", &vec_from!["x", "y"], Kurt::native_neq);
         self.add_builtin("do", &vec_from!["exprs..."], Kurt::native_do);
         self.add_builtin("def", &vec_from!["name", "value"], Kurt::native_def);
         self.add_builtin("def-all", &vec_from!["values"], Kurt::native_def_all);
@@ -21,18 +22,13 @@ impl Kurt {
         self.add_builtin("try", &vec_from!["block", "catch"], Kurt::native_try);
         self.add_builtin("print", &vec_from!["msgs..."], Kurt::native_print);
 
+        self.add_builtin("=", &vec_from!["x", "y"], Kurt::native_eq);
+        self.add_builtin("!=", &vec_from!["x", "y"], Kurt::native_neq);
+
         self.add_builtin("test", &vec_from!["name", "expr"], Kurt::native_test);
         self.add_builtin("expect", &vec_from!["expect", "expr"], Kurt::native_expect);
 
         self.add_builtin("not", &vec_from!["x"], Kurt::native_not);
-
-        self.def_dict = _dict(hash_map! {
-            "set".into(): self.builtin("set", &vec_from!["name", "value"]),
-            "set-all".into(): self.builtin("set-all", &vec_from!["values"]),
-            "def".into(): self.builtin("def", &vec_from!["name", "value"]),
-            "def-all".into(): self.builtin("def-all", &vec_from!["values"]),
-            "?".into(): self.builtin("?", &vec_from!["id"]),
-        });
 
         self.eval_file("./src/kurt/lib/core.kurt");
 

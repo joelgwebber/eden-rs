@@ -2,9 +2,10 @@ use super::{Kurt, Loc, expr::{Block, ERef, Expr, _id, _NIL}};
 
 mod core;
 mod eq;
-mod list;
 mod math;
 mod str;
+mod list;
+mod dict;
 
 impl Kurt {
     pub fn init_lib(&mut self) {
@@ -12,6 +13,7 @@ impl Kurt {
         self.init_math();
         self.init_str();
         self.init_list();
+        self.init_dict();
     }
 
     pub fn builtin(&self, name: &'static str, args: &Vec<String>) -> Expr {

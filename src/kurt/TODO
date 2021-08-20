@@ -1,4 +1,5 @@
-- Dict:for-each
+- list:enum
+- dict:iter
 
 - destructuring lists
     https://clojure.org/guides/destructuring

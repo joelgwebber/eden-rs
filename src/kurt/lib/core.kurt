@@ -1,7 +1,7 @@
 (def-all {
     :print-exception (e | do
         (print e.message)
-        (e.stack.for-each (_ frame | do
+        (e.stack.iter (frame | do
             (print
                 "  "
                 (if (> (frame.name.len) 0) frame.name "(unknown)")
